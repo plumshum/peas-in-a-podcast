@@ -1,0 +1,176 @@
+import { useEffect, useMemo, useState } from 'react'
+import SearchIcon from './assets/mag.png'
+
+interface QueryComponentProps {
+  title: string
+  idPrefix: string
+  onSearch: (query: string) => Promise<void> | void
+  initialQuery?: string
+}
+
+function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryComponentProps): JSX.Element {
+  const [query, setQuery] = useState<string>(initialQuery)
+  const [isExplicit, setIsExplicit] = useState<boolean>(false)
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([])
+  const [lengthMetric, setLengthMetric] = useState<'duration_ms' | 'total_episodes'>('duration_ms')
+  const [maxLength, setMaxLength] = useState<number>(100)
+  const [selectedLength, setSelectedLength] = useState<number>(50)
+  const [publisher, setPublisher] = useState<string>('')
+  const [releaseYear, setReleaseYear] = useState<string>('')
+
+  // TODO: can change this with more experimentation
+  const genreOptions = useMemo(  
+    () => [
+      'Comedy',
+      'News',
+      'Technology',
+      'Education',
+      'Business',
+      'Health',
+      'Sports',
+      'History',
+      'Science',
+      'True Crime',
+      'Music',
+      'Society',
+    ],
+    [],
+  )
+
+  useEffect(() => {
+    setQuery(initialQuery)
+  }, [initialQuery])
+
+  const handleGenreChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    const values = Array.from(event.target.selectedOptions, option => option.value)
+    setSelectedGenres(values)
+  }
+
+  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
+    event.preventDefault()
+    await onSearch(query)
+  }
+
+  return (
+    <section className="query-component">
+      <h2 className="query-title">{title}</h2>
+
+      <form onSubmit={handleSubmit}>
+        <label htmlFor={`${idPrefix}-query`} className="query-label">User Query Search Bar</label>
+        <div className="input-box query-input-box" onClick={() => document.getElementById(`${idPrefix}-query`)?.focus()}>
+          <img src={SearchIcon} alt="search" />
+          <input
+            id={`${idPrefix}-query`}
+            placeholder="Search for podcasts"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+          />
+          <button type="submit" className="query-submit">Search</button>
+        </div>
+
+        <div className="form-grid">
+          <div className="field-block">
+            <p className="query-label">Explicit Content</p>
+            <div className="toggle-group">
+              <button
+                type="button"
+                className={`toggle-btn ${!isExplicit ? 'active' : ''}`}
+                onClick={() => setIsExplicit(false)}
+              >
+                No
+              </button>
+              <button
+                type="button"
+                className={`toggle-btn ${isExplicit ? 'active' : ''}`}
+                onClick={() => setIsExplicit(true)}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+
+          <div className="field-block">
+            <label htmlFor={`${idPrefix}-genres`} className="query-label">Genres (multi-select)</label>
+            <select
+              id={`${idPrefix}-genres`}
+              multiple
+              value={selectedGenres}
+              onChange={handleGenreChange}
+              className="query-select"
+            >
+              {genreOptions.map(genre => (
+                <option key={genre} value={genre}>{genre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field-block">
+            <label htmlFor={`${idPrefix}-length-metric`} className="query-label">Podcast Length Metric</label>
+            <select
+              id={`${idPrefix}-length-metric`}
+              value={lengthMetric}
+              onChange={event => setLengthMetric(event.target.value as 'duration_ms' | 'total_episodes')}
+              className="query-select"
+            >
+              <option value="duration_ms">Episode Duration</option>
+              <option value="total_episodes">Number of Episodes</option>
+            </select>
+            <label htmlFor={`${idPrefix}-max-length`} className="query-label subtle-label">Maximum Range</label>
+            <input
+              id={`${idPrefix}-max-length`}
+              type="number"
+              min={1}
+              value={maxLength}
+              onChange={event => {
+                const nextMax = Math.max(1, Number(event.target.value) || 1)
+                setMaxLength(nextMax)
+                setSelectedLength(current => Math.min(current, nextMax))
+              }}
+              className="query-text-input"
+            />
+            <label htmlFor={`${idPrefix}-length-slider`} className="query-label subtle-label">
+              Selected Value: {selectedLength}
+            </label>
+            <input
+              id={`${idPrefix}-length-slider`}
+              type="range"
+              min={0}
+              max={maxLength}
+              value={selectedLength}
+              onChange={event => setSelectedLength(Number(event.target.value))}
+              className="query-range"
+            />
+          </div>
+
+          <div className="field-block">
+            <label htmlFor={`${idPrefix}-publisher`} className="query-label">Podcast Publisher</label>
+            <input
+              id={`${idPrefix}-publisher`}
+              type="text"
+              placeholder="Publisher name"
+              value={publisher}
+              onChange={event => setPublisher(event.target.value)}
+              className="query-text-input"
+            />
+          </div>
+
+          <div className="field-block">
+            <label htmlFor={`${idPrefix}-year`} className="query-label">Year of Release</label>
+            <input
+              id={`${idPrefix}-year`}
+              type="number"
+              min={1900}
+              max={2100}
+              placeholder="e.g. 2024"
+              value={releaseYear}
+              onChange={event => setReleaseYear(event.target.value)}
+              className="query-text-input"
+            />
+          </div>
+        </div>
+      </form>
+    </section>
+  )
+}
+
+export default QueryComponent

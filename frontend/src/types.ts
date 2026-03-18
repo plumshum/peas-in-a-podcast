@@ -3,3 +3,16 @@ export interface Episode {
   descr: string;
   imdb_rating: number;
 }
+
+/* TODO: add more types as needed
+
+Podcast {
+  ...
+  Episodes: Episode[]
+}
+
+Episode { 
+  ...
+}
+
+*/

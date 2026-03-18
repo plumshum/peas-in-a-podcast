@@ -16,8 +16,151 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
+.main-logo img {
+  height: 200px;
+  margin-bottom: 4px;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.mode-tab {
+  border: 1px solid #d9dde2;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #f7f8fa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.mode-tab.active {
+  background: #47b9c4;
+  border-color: #6d9df4;
+  color: #2c3138;
+}
+
+.query-component {
+  width: 700px;
+  max-width: calc(100% - 2rem);
+  border: 1px solid #d9dde2;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 14px;
+  background: #fff;
+}
+
+.query-title {
+  margin: 0 0 12px;
+  font-family: 'Kanit', sans-serif;
+  font-size: 1.05rem;
+}
+
+.query-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3138;
+}
+
+.subtle-label {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.query-input-box {
+  margin-top: 0;
+  width: 100%;
+}
+
+.query-submit {
+  border: 1px solid #d9dde2;
+  background: #f3f5f8;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.query-submit:hover {
+  background: #a547c4;
+}
+
+.form-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field-block {
+  border: 1px solid #eef1f4;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfcfd;
+}
+
+.toggle-group {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  border: 1px solid #c8d0db;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-btn.active {
+  background: #e8f1ff;
+  border-color: #6d9df4;
+  color: #2558b8;
+}
+
+.query-select,
+.query-text-input {
+  width: 100%;
+  border: 1px solid #cfd7e1;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  font-family: 'Open Sans', sans-serif;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.query-select[multiple] {
+  min-height: 112px;
+}
+
+.query-range {
+  width: 100%;
+}
+
+.collab-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  justify-items: center;
+}
+
+/* Google Logo from example. Will probably delete later
 .google-colors {
   display: flex;
   align-items: center;
@@ -34,6 +177,7 @@
 #google-3   { color: #4285F4; }
 #google-0-1 { color: #0F9D58; }
 #google-0-2 { color: #DB4437; }
+*/
 
 /* ── Search bar ────────────────────────────────────────────────────────────── */
 
@@ -44,14 +188,14 @@
   align-items: center;
   margin-top: 10px;
   padding: 12px;
-  width: 600px;
+  width: 100%;
   cursor: text;
   transition: box-shadow 0.2s;
 }
 
 .input-box:hover,
 .input-box:focus-within {
-  box-shadow: 0 1px 6px rgba(32, 33, 36, 0.28);
+  box-shadow: 0 1px 6px rgba(33, 33, 36, 0.28);
   border-color: transparent;
 }
 
@@ -232,6 +376,25 @@
 @media (max-width: 768px) {
   .google-colors h1 { font-size: 3rem; }
   .input-box { width: 90%; }
+  .mode-tabs {
+    width: calc(100% - 2rem);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .mode-tab {
+    flex: 1;
+    min-width: 150px;
+    text-align: center;
+  }
+  .query-component {
+    width: calc(100% - 2rem);
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .collab-grid {
+    grid-template-columns: 1fr;
+  }
   #answer-box { padding: 0 1rem; }
   #messages { padding: 0 8px 8px; }
 }
