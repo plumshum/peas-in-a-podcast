@@ -1,0 +1,10 @@
+// Hannah's Note: these variables are later exported as const variables in `_variables.sccs.d.ts`, where you can use them in the React Components directly. (But right now, we aren't actually using these exported variabes)
+// I also think its nice for recording branding colors in one place
+
+// Primary Colors from Main Logo
+$primaryGreen: #4dc447;
+$primaryBlue: #47b9c4;
+$primaryPurple: #a547c4;
+
+// Secondary Colors
+$error: #ef5777;
