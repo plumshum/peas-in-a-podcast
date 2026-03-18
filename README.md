@@ -2,6 +2,7 @@
 
 # 2 Peas in a Podcast
 presented by Lychee Labs :)
+Check out the product page at https://lychee-labs.4300showcase.infosci.cornell.edu/
 
 
 # 4300 Flask React Template
