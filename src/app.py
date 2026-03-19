@@ -1,11 +1,12 @@
 import json
 import os
+import pandas as pd
 from dotenv import load_dotenv
 from flask import Flask
 
 load_dotenv()
 from flask_cors import CORS
-from models import db, Episode, Review
+from models import db, Episode, Review, Podcast
 from routes import register_routes
 
 # src/ directory and project root (one level up)
@@ -28,34 +29,62 @@ db.init_app(app)
 # Register routes
 register_routes(app)
 
-# Function to initialize database, change this to your own database initialization logic
+# Function to initialize database
+# TODO: change from init.json to like podcast.csv, and create Podcast Objects instead
 def init_db():
     with app.app_context():
         # Create all tables
         db.create_all()
-        
-        # Initialize database with data from init.json if empty
-        if Episode.query.count() == 0:
-            json_file_path = os.path.join(current_directory, 'init.json')
-            with open(json_file_path, 'r') as file:
-                data = json.load(file)
-                for episode_data in data['episodes']:
-                    episode = Episode(
-                        id=episode_data['id'],
-                        title=episode_data['title'],
-                        descr=episode_data['descr']
-                    )
-                    db.session.add(episode)
-                
-                for review_data in data['reviews']:
-                    review = Review(
-                        id=review_data['id'],
-                        imdb_rating=review_data['imdb_rating']
-                    )
-                    db.session.add(review)
-            
-            db.session.commit()
-            print("Database initialized with episodes and reviews data")
+
+        # Load podcasts
+        df_podcasts = pd.read_csv('data/podcasts.csv')
+        for _, row in df_podcasts.iterrows():
+            if db.session.get(Podcast, row['id']) is None:  # Check if podcast already exists
+                podcast = Podcast(
+                    id=row['id'],
+                    podcast_guid=row['podcast_guid'],
+                    name=row['name'],
+                    author=row['author'],
+                    owner_name=row['owner_name'] if pd.notna(row['owner_name']) else None,
+                    descr=row['description'] if pd.notna(row['description']) else None,
+                    categories=row['categories'],
+                    explicit=row['explicit'],
+                    avg_duration_min=0, # TODO: add this param 
+                    language=row['language'] if pd.notna(row['language']) else None,
+                    image_url=row['image_url'] if pd.notna(row['image_url']) else None,
+                    feed_url=row['feed_url'],
+                    website_url=row['website_url'] if pd.notna(row['website_url']) else None,
+                    itunes_id=str(int(row['itunes_id'])) if pd.notna(row['itunes_id']) else None,
+                    newest_item_date=None,
+                    popularity_score=row['popularity_score']
+                )
+                db.session.add(podcast)
+        db.session.commit()
+        print(f'Loaded {len(df_podcasts)} podcasts.')
+
+        # Load episodes of each podcast
+        df_episodes = pd.read_csv('data/episodes.csv')
+        for _, row in df_episodes.iterrows():
+            if db.session.get(Episode, row['id']) is None:  # Check if episode already exists
+                episode = Episode(
+                    id=row['id'],
+                    podcast_id=row['podcast_id'],
+                    podcast_name=row['podcast_name'],
+                    category=row['category'],
+                    episode_name=row['episode_name'],
+                    description=row['description'] if pd.notna(row['description']) else None,
+                    duration_min=row['duration_min'],
+                    release_date=pd.to_datetime(row['release_date']) if pd.notna(row['release_date']) else None,
+                    release_year=int(row['release_year']) if pd.notna(row['release_year']) else None,
+                    explicit=row['explicit'],
+                    episode_type=row['episode_type'] if pd.notna(row['episode_type']) else None,
+                    image_url=row['image_url'],
+                    audio_url=row['audio_url'],
+                    external_url=row['external_url'] if pd.notna(row['external_url']) else None
+                )
+                db.session.add(episode)
+        db.session.commit()
+        print(f'Loaded {len(df_episodes)} episodes.')
 
 init_db()
 
