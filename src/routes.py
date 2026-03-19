@@ -77,6 +77,7 @@ def json_search(query, explicit=False, genres=[], publisher='', release_year=Non
             'explicit': r['podcast'].explicit,
             'image_url': r['podcast'].image_url,
             'feed_url': r['podcast'].feed_url,
+            'website_url': r['podcast'].website_url,
             'author': r['podcast'].author,
             'score': round(float(r['score']), 4),
             'popularity': r['podcast'].popularity_score,

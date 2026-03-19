@@ -10,6 +10,7 @@ export interface Podcast {
   explicit: boolean;
   image_url: string;
   feed_url: string;
+  website_url: string;
   author: string;
   categories: string[];
   popularity_score: number;
