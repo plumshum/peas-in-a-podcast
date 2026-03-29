@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import SearchIcon from './assets/mag.png'
+import './QueryComponent.css'
 
 interface QueryComponentProps {
   title: string
@@ -56,21 +57,22 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
       <h2 className="query-title">{title}</h2>
 
       <form onSubmit={handleSubmit}>
-        <label htmlFor={`${idPrefix}-query`} className="query-label">User Query Search Bar</label>
+        <label htmlFor={`${idPrefix}-query`} className="query-label required">User Query Search Bar</label>
         <div className="input-box query-input-box" onClick={() => document.getElementById(`${idPrefix}-query`)?.focus()}>
           <img src={SearchIcon} alt="search" />
           <input
             id={`${idPrefix}-query`}
-            placeholder="Search for podcasts"
+            placeholder="Healthy lifestyle podcasts..."
             value={query}
             onChange={event => setQuery(event.target.value)}
+            required
           />
           <button type="submit" className="query-submit">Search</button>
         </div>
 
         <div className="form-grid">
           <div className="field-block">
-            <p className="query-label">Explicit Content</p>
+            <p className="query-label">Allow profanity or NSFW?</p>
             <div className="toggle-group">
               <button
                 type="button"
@@ -86,11 +88,12 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
               >
                 Yes
               </button>
+              <span className="required"></span>
             </div>
           </div>
 
           <div className="field-block">
-            <label htmlFor={`${idPrefix}-genres`} className="query-label">Genres (multi-select)</label>
+            <label htmlFor={`${idPrefix}-genres`} className="query-label">Genres (multi-select using Ctrl/CMD)</label>
             <select
               id={`${idPrefix}-genres`}
               multiple
@@ -112,8 +115,8 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
               onChange={event => setLengthMetric(event.target.value as 'duration_ms' | 'total_episodes')}
               className="query-select"
             >
-              <option value="duration_ms">Episode Duration</option>
               <option value="total_episodes">Number of Episodes</option>
+              <option value="duration_ms">Episode Duration</option>
             </select>
             <label htmlFor={`${idPrefix}-max-length`} className="query-label subtle-label">Maximum Range</label>
             <input

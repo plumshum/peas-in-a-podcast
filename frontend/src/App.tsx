@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import MainLogo from './assets/main_logo.png'
+import MainLogoInstructions from './assets/instr main.png'
+import ResultInstructions from './assets/instr result.png'
 import Pea1 from './assets/pea1.png'
 import Pea2 from './assets/pea2.png'
 import { Podcast } from './types'
@@ -55,7 +57,11 @@ function App(): JSX.Element {
         <div className="main-logo">
           <img src={MainLogo} alt="main logo" />
         </div>
-
+        {view == 'query' &&
+        (<div className="instructions">
+          <img src={MainLogoInstructions} alt="instructions" />
+        </div>)
+        }
         {view === 'query' && (
           <div className="mode-tabs" role="tablist" aria-label="Listening mode">
             <button
@@ -111,6 +117,7 @@ function App(): JSX.Element {
 
       {view === 'results' && (
         <>
+          <img src={ResultInstructions} alt="results instructions" className="results-instructions" />
           <div className="results-toolbar">
             <button type="button" className="back-button" onClick={handleBackToQuery}>
               Back to Search

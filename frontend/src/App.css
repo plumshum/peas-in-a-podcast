@@ -24,6 +24,11 @@
   margin-bottom: 4px;
 }
 
+.instructions img {
+  height:150px;
+  margin-bottom: 12px;
+}
+
 .mode-tabs {
   display: flex;
   gap: 8px;
@@ -253,6 +258,11 @@
   max-width: calc(100% - 2rem);
   margin-top: 1rem;
   display: flex;
+}
+
+.results-instructions {
+  align-self:center;
+  height: 100px;
 }
 
 .back-button {
