@@ -42,7 +42,7 @@ def query_to_vec(query):
 # TODO: use cosine similarity and return top 5 matches instead of all matches
 def json_search(query, explicit=False, genres=[], publisher='', release_year=None, length_metric=None, max_length=None):
     query_vec = query_to_vec(query)
-    scores = cosine_similarity(query_vec, embeddings)[0]
+    scores = cosine_similarity(query_vec.reshape(1, -1), embeddings)[0]
     id_to_score = dict(zip(show_ids, scores))
     
     # Get Podcasts and apply filters
