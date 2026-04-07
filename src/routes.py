@@ -29,16 +29,19 @@ embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddin
 show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids.txt')).read_text().splitlines()
 df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts.csv'))
 
-
-# TODO: use cosine similarity and return top 5 matches instead of all matches
-def json_search(query, explicit=False, genres=[], publisher='', release_year=None, length_metric=None, max_length=None):
+def query_to_vec(query):
     if not query or not query.strip():
         query = "Joe Rogan Podcast"
     
     # Get embedding for query
     query_vec = svd_model['svd'].transform(svd_model['tfidf'].transform([query]))
-    
-    # shape: (1,100)
+    vec = query_vec[0]  # shape: (100,)
+    norm = np.linalg.norm(vec)
+    return vec / norm if norm > 0 else vec
+
+# TODO: use cosine similarity and return top 5 matches instead of all matches
+def json_search(query, explicit=False, genres=[], publisher='', release_year=None, length_metric=None, max_length=None):
+    query_vec = query_to_vec(query)
     scores = cosine_similarity(query_vec, embeddings)[0]
     id_to_score = dict(zip(show_ids, scores))
     
