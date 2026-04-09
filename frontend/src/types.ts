@@ -16,14 +16,11 @@ export interface Podcast {
   popularity_score: number;
   score?: number;
   popularity?: number;
+  episode_count?: number;
+  // avg_episode_time?: number;
 }
 
 /* TODO: add more types as needed
-
-Podcast {
-  ...
-  Episodes: Episode[]
-}
 
 Episode { 
   ...

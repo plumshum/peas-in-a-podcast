@@ -10,6 +10,7 @@ export interface SearchRequest {
   publisher?: string
   releaseYear?: string
   lengthMetric?: 'duration_ms' | 'total_episodes'
+  minLength?: number
   maxLength?: number
 }
 
@@ -21,12 +22,15 @@ interface QueryComponentProps {
 }
 
 function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryComponentProps): JSX.Element {
+  const defaultMinLength = 0
+  const defaultMaxLength = 500
+
   const [query, setQuery] = useState<string>(initialQuery)
   const [isExplicit, setIsExplicit] = useState<boolean>(false)
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [lengthMetric, setLengthMetric] = useState<'duration_ms' | 'total_episodes'>('duration_ms')
-  const [maxLength, setMaxLength] = useState<number>(100)
-  const [selectedLength, setSelectedLength] = useState<number>(50)
+  const [lengthMetric, setLengthMetric] = useState<'duration_ms' | 'total_episodes'>('total_episodes')
+  const [minLength, setMinLength] = useState<number>(defaultMinLength)
+  const [maxLength, setMaxLength] = useState<number>(defaultMaxLength)
   const [publisher, setPublisher] = useState<string>('')
   const [releaseYear, setReleaseYear] = useState<string>('')
 
@@ -67,6 +71,7 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
       publisher,
       releaseYear,
       lengthMetric,
+      minLength,
       maxLength,
     })
   }
@@ -135,32 +140,33 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
               className="query-select"
             >
               <option value="total_episodes">Number of Episodes</option>
-              <option value="duration_ms">Episode Duration</option>
+              {/* <option value="duration_ms">Episode Duration</option> */}
             </select>
-            <label htmlFor={`${idPrefix}-max-length`} className="query-label subtle-label">Maximum Range</label>
+            <label htmlFor={`${idPrefix}-min-length`} className="query-label subtle-label">Minimum Value</label>
             <input
-              id={`${idPrefix}-max-length`}
+              id={`${idPrefix}-min-length`}
               type="number"
-              min={1}
-              value={maxLength}
+              min={defaultMinLength}
+              max={defaultMaxLength}
+              value={minLength}
               onChange={event => {
-                const nextMax = Math.max(1, Number(event.target.value) || 1)
-                setMaxLength(nextMax)
-                setSelectedLength(current => Math.min(current, nextMax))
+                const nextMin = Math.max(defaultMinLength, Number(event.target.value) || defaultMinLength)
+                setMinLength(Math.min(nextMin, maxLength))
               }}
               className="query-text-input"
             />
-            <label htmlFor={`${idPrefix}-length-slider`} className="query-label subtle-label">
-              Selected Value: {selectedLength}
-            </label>
+            <label htmlFor={`${idPrefix}-max-length`} className="query-label subtle-label">Maximum Value</label>
             <input
-              id={`${idPrefix}-length-slider`}
-              type="range"
-              min={0}
-              max={maxLength}
-              value={selectedLength}
-              onChange={event => setSelectedLength(Number(event.target.value))}
-              className="query-range"
+              id={`${idPrefix}-max-length`}
+              type="number"
+              min={defaultMinLength}
+              max={defaultMaxLength}
+              value={maxLength}
+              onChange={event => {
+                const nextMax = Math.min(defaultMaxLength, Number(event.target.value) || defaultMaxLength)
+                setMaxLength(Math.max(nextMax, minLength))
+              }}
+              className="query-text-input"
             />
           </div>
 

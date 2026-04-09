@@ -124,6 +124,8 @@ def optimize_query_vec(vec, embeddings, top_k_indices, top_k_scores=None, alpha=
     q_new = alpha * vec + beta * centroid
 
     norm = np.linalg.norm(q_new, axis=1, keepdims=True)
+    # print rocchio
+    print(f"Rocchio update: alpha={alpha}, beta={beta}, top_k_scores={top_k_scores}")
     return np.divide(q_new, norm, out=np.zeros_like(q_new), where=norm > 0)
 
 
@@ -158,13 +160,19 @@ def parse_query_negations(raw_query, known_genres=None):
     return cleaned_query, excluded_genres
 
 # TODO: use cosine similarity and return top 5 matches instead of all matches
-def json_search(query, explicit=False, genres=None, excluded_genres=None, publisher='', release_year=None, length_metric=None, max_length=None):
+def json_search(query, explicit=False, genres=None, excluded_genres=None, publisher='', release_year=None, length_metric=None, min_length=None, max_length=None):
     genres = genres or []
     excluded_genres = excluded_genres or []
 
     query_vec = query_to_vec(query)
     # embeddings are size (n_podcasts, 200), so query_vec needs to be (1, 200) for cosine similarity to work
-    scores = cosine_similarity(query_vec, embeddings)[0]  # shape: (n_podcasts,)
+    
+    optimized_query_vec = optimize_query_vec(query_vec, embeddings, *get_top_k(query_vec, embeddings, k=5), alpha=0.5, beta=0.5)
+    #optimized_query_vec = query_vec
+    # a=1.0, b=0.25 => .722 
+    # a=0.5, b=0.5
+    
+    scores = cosine_similarity(optimized_query_vec, embeddings)[0]  # shape: (n_podcasts,)
     id_to_score = dict(zip(show_ids, scores))
     
     # Get Podcasts and apply filters
@@ -184,11 +192,17 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
         q = q.filter(Podcast.newest_item_date != None).filter(
             Podcast.newest_item_date.between(f'{release_year}-01-01', f'{release_year}-12-31')
         )
-    if length_metric and max_length is not None:
+    if length_metric and (min_length is not None or max_length is not None):
         if length_metric == 'duration_ms':
-            q = q.filter(Podcast.avg_duration_min <= max_length)
+            if min_length is not None:
+                q = q.filter(Podcast.avg_duration_min >= min_length)
+            if max_length is not None:
+                q = q.filter(Podcast.avg_duration_min <= max_length)
         if length_metric == 'total_episodes':
-            q = q.filter(Podcast.episode_count <= max_length)
+            if min_length is not None:
+                q = q.filter(Podcast.episode_count >= min_length)
+            if max_length is not None:
+                q = q.filter(Podcast.episode_count <= max_length)
         # TODO: popularity?
     podcasts = q.all()
     
@@ -209,6 +223,8 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
             'author': r['podcast'].author,
             'score': round(float(r['score']), 4),
             'popularity': r['podcast'].popularity_score,
+            'episode_count': r['podcast'].episode_count,
+            # 'avg_episode_time': r['podcast'].avg_duration_min,
         } for r in results]
     )
 
@@ -240,6 +256,7 @@ def register_routes(app):
         publisher        = request.args.get('publisher', '')
         year             = request.args.get('releaseYear', '')
         length_met       = request.args.get('lengthMetric', '')
+        min_length       = request.args.get('minLength', type=float)
         max_length       = request.args.get('maxLength', type=float)
 
         query, negated_genres = parse_query_negations(raw_query)
@@ -256,6 +273,7 @@ def register_routes(app):
             publisher=publisher,
             release_year=year,
             length_metric=length_met,
+            min_length=min_length,
             max_length=max_length
         ))
 

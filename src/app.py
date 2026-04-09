@@ -38,7 +38,9 @@ def init_db():
 
         # Load podcasts
         # df_podcasts = pd.read_csv('data/podcasts.csv')
-        df_podcasts = pd.read_csv('data/podcasts_cleaned.csv')
+        # TODO: check with cleaned another time
+        df_podcasts = pd.read_csv('data/podcasts.csv')
+        df_episodes = pd.read_csv('data/episodes.csv')
         for _, row in df_podcasts.iterrows():
             if db.session.get(Podcast, row['id']) is None:  # Check if podcast already exists
                 podcast = Podcast(
@@ -50,7 +52,8 @@ def init_db():
                     descr=row['description'] if pd.notna(row['description']) else None,
                     categories=row['categories'],
                     explicit=row['explicit'],
-                    avg_duration_min=0, # TODO: add this param 
+                    # avg_duration_min=row['avg_duration_min'] if pd.notna(row['avg_duration_min']) else None,
+                    episode_count=row['episode_count'],
                     language=row['language'] if pd.notna(row['language']) else None,
                     image_url=row['image_url'] if pd.notna(row['image_url']) else None,
                     feed_url=row['feed_url'],

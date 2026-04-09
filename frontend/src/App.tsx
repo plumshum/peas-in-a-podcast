@@ -54,6 +54,10 @@ function App(): JSX.Element {
       params.set('lengthMetric', request.lengthMetric)
     }
 
+    if (request.minLength !== undefined) {
+      params.set('minLength', String(request.minLength))
+    }
+
     if (request.maxLength !== undefined) {
       params.set('maxLength', String(request.maxLength))
     }
