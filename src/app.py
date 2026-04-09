@@ -37,7 +37,8 @@ def init_db():
         db.create_all()
 
         # Load podcasts
-        df_podcasts = pd.read_csv('data/podcasts.csv')
+        # df_podcasts = pd.read_csv('data/podcasts.csv')
+        df_podcasts = pd.read_csv('data/podcasts_cleaned.csv')
         for _, row in df_podcasts.iterrows():
             if db.session.get(Podcast, row['id']) is None:  # Check if podcast already exists
                 podcast = Podcast(

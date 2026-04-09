@@ -2,10 +2,21 @@ import { useEffect, useMemo, useState } from 'react'
 import SearchIcon from './assets/mag.png'
 import './QueryComponent.css'
 
+export interface SearchRequest {
+  query: string
+  explicit?: boolean
+  genres?: string[]
+  excludedGenres?: string[]
+  publisher?: string
+  releaseYear?: string
+  lengthMetric?: 'duration_ms' | 'total_episodes'
+  maxLength?: number
+}
+
 interface QueryComponentProps {
   title: string
   idPrefix: string
-  onSearch: (query: string) => Promise<void> | void
+  onSearch: (request: SearchRequest) => Promise<void> | void
   initialQuery?: string
 }
 
@@ -49,7 +60,15 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
 
   const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault()
-    await onSearch(query)
+    await onSearch({
+      query,
+      explicit: isExplicit,
+      genres: selectedGenres,
+      publisher,
+      releaseYear,
+      lengthMetric,
+      maxLength,
+    })
   }
 
   return (
