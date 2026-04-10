@@ -12,6 +12,7 @@ Check out the product page at https://lychee-labs.4300showcase.infosci.cornell.e
 - [Summary](#summary)
 - [Quick Start](#quick-start)
 - [Architecture](#architecture)
+- [Architecture w/ Peas in Podcast](#architecture-w-peas-in-podcast)
 - [Deploying on the Server](#deploying-on-the-server)
 - [Running Locally](#running-locally)
 - [Troubleshooting Deployment Issues](#troubleshooting-deployment-issues)
@@ -95,10 +96,35 @@ Then open `http://localhost:5173` in your browser!
 └── .env                # API_KEY goes here (not committed)
 ```
 
+## Architecture w/ Peas in Podcast
+```
+4300-Flask-React-Template/
+├── src/
+│   ├── app.py          # Flask app entry point
+│   ├── models.py       # SQLAlchemy database models
+│   ├── routes.py       # Search API routes (+ USE_LLM toggle)
+|   ├──data_scripts/    # Collect and process podcast data
+    ├──match.py         # Matching podcast users (on sep. branch)
+│   ├── llm_routes.py   # LLM chat route (only used when USE_LLM = True)
+│   └── init.json       # Seed data
+├── frontend/
+│   └── src/
+│       ├── App.tsx     # Search UI (always shown)
+│       ├── Chat.tsx    # AI chat component (rendered when USE_LLM = True)
+|       ├──QueryComponent # user query input component
+|       ├──ResultsComponent # search results display component
+│       ├── App.css
+│       └── types.ts
+├── requirements.txt
+├── Dockerfile
+└── .env                # API_KEY goes here (not committed)
+```
+
+
 ### Backend (Flask)
 - **Entry point**: `src/app.py`
 - **Database**: SQLite with SQLAlchemy ORM
-- **API Routes**: prefixed with `/api` (e.g., `GET /api/episodes`, `POST /api/chat`)
+- **API Routes**: prefixed with `/api` (e.g., `GET /api/podcasts`, `POST /api/chat`)
 - **Config endpoint**: `GET /api/config` — tells the frontend whether `USE_LLM` is on
 
 ### Frontend (React + TypeScript)
