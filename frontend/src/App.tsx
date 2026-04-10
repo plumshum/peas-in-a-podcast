@@ -5,11 +5,11 @@ import MainLogoInstructions from './assets/instr main.png'
 import ResultInstructions from './assets/instr result.png'
 import Pea1 from './assets/pea1.png'
 import Pea2 from './assets/pea2.png'
-import { Podcast, SearchPayload } from './types'
+import { Podcast } from './types'
 import Chat from './Chat'
-import QueryComponent from './QueryComponent'
+import QueryComponent, { type SearchRequest } from './QueryComponent'
 import ResultComponent from './ResultComponent'
-import MatchResults from './Matchresults'
+import MatchResults from './MatchResults'
 type ListeningMode = 'solo' | 'collab'
 type AppView = 'query' | 'results'
 
@@ -21,8 +21,8 @@ function App(): JSX.Element {
   // const [episodes, setEpisodes] = useState<Episode[]>([])
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
   const [matchPct, setMatchPct] = useState<number>(0)
-  const [collabUser1, setCollabUser1] = useState<SearchPayload | null>(null)
-  const [collabUser2, setCollabUser2] = useState<SearchPayload | null>(null)
+  const [collabUser1, setCollabUser1] = useState<SearchRequest | null>(null)
+  const [collabUser2, setCollabUser2] = useState<SearchRequest | null>(null)
   const [collabStatus, setCollabStatus] = useState<string>('')
 
   useEffect(() => {
@@ -30,21 +30,42 @@ function App(): JSX.Element {
     fetch('/api/config').then(r => r.json()).then(data => setUseLlm(data.use_llm))
   }, [])
 
-  const handleSearch = async (payload: SearchPayload): Promise<void> => {
-    if (payload.query.trim() === '') {
+  const handleSearch = async (request: SearchRequest): Promise<void> => {
+    if (request.query.trim() === '') {
       setPodcasts([])
       setView('query')
       return
     }
 
     const params = new URLSearchParams()
-    params.set('query', payload.query)
-    params.set('explicit', String(payload.explicit))
-    payload.genres.forEach(genre => params.append('genres', genre))
-    params.set('publisher', payload.publisher)
-    params.set('releaseYear', payload.releaseYear)
-    params.set('lengthMetric', payload.lengthMetric)
-    params.set('maxLength', String(payload.maxLength))
+    params.set('query', request.query)
+
+    if (request.explicit !== undefined) {
+      params.set('explicit', String(request.explicit))
+    }
+
+    request.genres?.forEach(genre => params.append('genres', genre))
+    request.excludedGenres?.forEach(genre => params.append('excludedGenres', genre))
+
+    if (request.publisher?.trim()) {
+      params.set('publisher', request.publisher.trim())
+    }
+
+    if (request.releaseYear?.trim()) {
+      params.set('releaseYear', request.releaseYear.trim())
+    }
+
+    if (request.lengthMetric) {
+      params.set('lengthMetric', request.lengthMetric)
+    }
+
+    if (request.minLength !== undefined) {
+      params.set('minLength', String(request.minLength))
+    }
+
+    if (request.maxLength !== undefined) {
+      params.set('maxLength', String(request.maxLength))
+    }
 
     const response = await fetch(`/api/podcasts?${params.toString()}`)
     const data: Podcast[] = await response.json()
@@ -53,7 +74,7 @@ function App(): JSX.Element {
     setView('results')
   }
 
-  const executeCollabSearch = async (userA: SearchPayload, userB: SearchPayload): Promise<void> => {
+  const executeCollabSearch = async (userA: SearchRequest, userB: SearchRequest): Promise<void> => {
     if (userA.query.trim() === '' || userB.query.trim() === '') {
       setPodcasts([])
       setView('query')
@@ -78,7 +99,7 @@ function App(): JSX.Element {
     setView('results')
   }
 
-  const handleCollabSearchUser1 = async (payload: SearchPayload): Promise<void> => {
+  const handleCollabSearchUser1 = async (payload: SearchRequest): Promise<void> => {
     setCollabUser1(payload)
     if (collabUser2) {
       try {
@@ -92,7 +113,7 @@ function App(): JSX.Element {
     setCollabStatus('User 1 is ready. Waiting for User 2 to submit.')
   }
 
-  const handleCollabSearchUser2 = async (payload: SearchPayload): Promise<void> => {
+  const handleCollabSearchUser2 = async (payload: SearchRequest): Promise<void> => {
     setCollabUser2(payload)
     if (collabUser1) {
       try {
@@ -110,15 +131,7 @@ function App(): JSX.Element {
   const handleChatSearch = async (value: string): Promise<void> => {
     setListeningMode('solo')
     setChatSeedTerm(value)
-    await handleSearch({
-      query: value,
-      explicit: false,
-      genres: [],
-      lengthMetric: 'duration_ms',
-      maxLength: 50,
-      publisher: '',
-      releaseYear: '',
-    })
+    await handleSearch({ query: value })
   }
 
   const handleBackToQuery = (): void => {
