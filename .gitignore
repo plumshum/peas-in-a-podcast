@@ -28,3 +28,4 @@ frontend/node_modules/
 package-lock.json
 
 data/
+src/data_scripts/spotify_podcast_collector.ipynb
