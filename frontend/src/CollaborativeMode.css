@@ -87,14 +87,45 @@ body {
 }
 .collab-main-form-box {
   display: flex;
-  justify-content: center;
-  gap: 2.5rem;
+  flex-direction: column;
+  align-items: center;
   background: #e7dff2;
   border-radius: 1.5rem;
   max-width: 1000px;
   margin: 0 auto;
   padding: 2.5rem 2rem 2rem 2rem;
   box-shadow: 0 2px 12px #0001;
+}
+
+/* Row for the two user cards */
+.collab-forms-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 3.5rem; /* Increased gap for more separation */
+  width: 100%;
+  margin-bottom: 2.5rem;
+}
+
+/* Ensure user cards have a fixed or max width */
+.collab-user-card {
+  min-width: 340px;
+  max-width: 400px;
+  flex: 1 1 0;
+}
+
+/* Remove old search row style (was right-aligned) */
+.collab-search-row {
+  display: none;
+}
+
+/* New bottom-centered search row */
+.collab-search-row-bottom {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 2.5rem;
+  margin-bottom: 0.5rem;
 }
 .collab-form-side {
   flex: 1 1 0;

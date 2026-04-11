@@ -39,151 +39,89 @@ function CollaborativeMode({ onCollaborativeSearch }: CollaborativeModeProps) {
     <form className="collab-main-form-box" onSubmit={handleSubmit}>
       <div className="collab-forms-row">
         {/* User 1 Form */}
-        <div className="collab-form-side" style={{ background: '#f3fbe7', borderRadius: '1.1rem', padding: '1.2rem', minWidth: 320 }}>
-          <div className="collab-form-label">Query</div>
-          <input
-            type="text"
-            className="collab-query-input form-input"
-            value={user1.query}
-            onChange={e => handleInput(1, 'query', e.target.value)}
-            placeholder="Query"
-          />
-          <div className="form-row">
-            <label className="form-label" style={{ marginRight: 8 }}>Explicit?</label>
-            <input
-              type="checkbox"
-              checked={!!user1.explicit}
-              onChange={e => handleInput(1, 'explicit', e.target.checked)}
-              style={{ marginTop: 2 }}
-            />
-            <span style={{ flex: 1 }}></span>
-            <label className="form-label" style={{ marginRight: 8 }}>Genres</label>
-            <select
-              multiple
-              className="form-select"
-              value={user1.genres}
-              onChange={e => handleGenreChange(1, e)}
-              style={{ minWidth: 120 }}
-            >
-              {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-          <div className="form-row">
-            <label className="form-label">Length</label>
-            <input
-              type="number"
-              className="form-input"
-              placeholder="Length"
-              value={user1.minLength ?? ''}
-              onChange={e => handleInput(1, 'minLength', Number(e.target.value))}
-              style={{ maxWidth: 80 }}
-            />
-            <span style={{ margin: '0 4px' }}>-</span>
-            <input
-              type="number"
-              className="form-input"
-              placeholder="Max"
-              value={user1.maxLength ?? ''}
-              onChange={e => handleInput(1, 'maxLength', Number(e.target.value))}
-              style={{ maxWidth: 80 }}
-            />
-          </div>
-          <div className="form-row">
-            <label className="form-label">Year</label>
+        <div className="collab-user-card user-a-card solo-form-card">
+          <div className="solo-query-row">
+            <label className="solo-label">Query</label>
             <input
               type="text"
-              className="form-input"
-              placeholder="Year"
-              value={user1.releaseYear || ''}
-              onChange={e => handleInput(1, 'releaseYear', e.target.value)}
-              style={{ maxWidth: 100 }}
+              className="solo-input"
+              value={user1.query}
+              onChange={e => handleInput(1, 'query', e.target.value)}
+              placeholder="Query"
             />
-            <span style={{ flex: 1 }}></span>
-            <label className="form-label">Publisher</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Publisher"
-              value={user1.publisher || ''}
-              onChange={e => handleInput(1, 'publisher', e.target.value)}
-              style={{ maxWidth: 120 }}
-            />
+          </div>
+          <div className="solo-fields-grid">
+            <div className="solo-explicit">
+              <label className="solo-label">Explicit?</label>
+              <div className="solo-explicit-options">
+                <label><input type="checkbox" checked={!!user1.explicit} onChange={e => handleInput(1, 'explicit', e.target.checked)} /> Yes</label>
+              </div>
+            </div>
+            <div className="solo-genres">
+              <label className="solo-label">Genres</label>
+              <select multiple className="solo-select" value={user1.genres} onChange={e => handleGenreChange(1, e)}>
+                {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div className="solo-length">
+              <label className="solo-label">Length</label>
+              <input type="number" className="solo-input" placeholder="Min" value={user1.minLength ?? ''} onChange={e => handleInput(1, 'minLength', Number(e.target.value))} style={{ maxWidth: 80 }} />
+              <span style={{ margin: '0 4px' }}>-</span>
+              <input type="number" className="solo-input" placeholder="Max" value={user1.maxLength ?? ''} onChange={e => handleInput(1, 'maxLength', Number(e.target.value))} style={{ maxWidth: 80 }} />
+            </div>
+            <div className="solo-year">
+              <label className="solo-label">Year</label>
+              <input type="text" className="solo-input" placeholder="Year" value={user1.releaseYear || ''} onChange={e => handleInput(1, 'releaseYear', e.target.value)} style={{ maxWidth: 100 }} />
+            </div>
+            <div className="solo-publisher">
+              <label className="solo-label">Publisher</label>
+              <input type="text" className="solo-input" placeholder="Publisher" value={user1.publisher || ''} onChange={e => handleInput(1, 'publisher', e.target.value)} style={{ maxWidth: 120 }} />
+            </div>
           </div>
         </div>
         {/* User 2 Form */}
-        <div className="collab-form-side" style={{ background: '#ede1f3', borderRadius: '1.1rem', padding: '1.2rem', minWidth: 320 }}>
-          <div className="collab-form-label">Query</div>
-          <input
-            type="text"
-            className="collab-query-input form-input"
-            value={user2.query}
-            onChange={e => handleInput(2, 'query', e.target.value)}
-            placeholder="Query"
-          />
-          <div className="form-row">
-            <label className="form-label" style={{ marginRight: 8 }}>Explicit?</label>
-            <input
-              type="checkbox"
-              checked={!!user2.explicit}
-              onChange={e => handleInput(2, 'explicit', e.target.checked)}
-              style={{ marginTop: 2 }}
-            />
-            <span style={{ flex: 1 }}></span>
-            <label className="form-label" style={{ marginRight: 8 }}>Genres</label>
-            <select
-              multiple
-              className="form-select"
-              value={user2.genres}
-              onChange={e => handleGenreChange(2, e)}
-              style={{ minWidth: 120 }}
-            >
-              {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-          <div className="form-row">
-            <label className="form-label">Length</label>
-            <input
-              type="number"
-              className="form-input"
-              placeholder="Length"
-              value={user2.minLength ?? ''}
-              onChange={e => handleInput(2, 'minLength', Number(e.target.value))}
-              style={{ maxWidth: 80 }}
-            />
-            <span style={{ margin: '0 4px' }}>-</span>
-            <input
-              type="number"
-              className="form-input"
-              placeholder="Max"
-              value={user2.maxLength ?? ''}
-              onChange={e => handleInput(2, 'maxLength', Number(e.target.value))}
-              style={{ maxWidth: 80 }}
-            />
-          </div>
-          <div className="form-row">
-            <label className="form-label">Year</label>
+        <div className="collab-user-card user-b-card solo-form-card">
+          <div className="solo-query-row">
+            <label className="solo-label">Query</label>
             <input
               type="text"
-              className="form-input"
-              placeholder="Year"
-              value={user2.releaseYear || ''}
-              onChange={e => handleInput(2, 'releaseYear', e.target.value)}
-              style={{ maxWidth: 100 }}
+              className="solo-input"
+              value={user2.query}
+              onChange={e => handleInput(2, 'query', e.target.value)}
+              placeholder="Query"
             />
-            <span style={{ flex: 1 }}></span>
-            <label className="form-label">Publisher</label>
-            <input
-              type="text"
-              className="form-input"
-              placeholder="Publisher"
-              value={user2.publisher || ''}
-              onChange={e => handleInput(2, 'publisher', e.target.value)}
-              style={{ maxWidth: 120 }}
-            />
+          </div>
+          <div className="solo-fields-grid">
+            <div className="solo-explicit">
+              <label className="solo-label">Explicit?</label>
+              <div className="solo-explicit-options">
+                <label><input type="checkbox" checked={!!user2.explicit} onChange={e => handleInput(2, 'explicit', e.target.checked)} /> Yes</label>
+              </div>
+            </div>
+            <div className="solo-genres">
+              <label className="solo-label">Genres</label>
+              <select multiple className="solo-select" value={user2.genres} onChange={e => handleGenreChange(2, e)}>
+                {genreOptions.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div className="solo-length">
+              <label className="solo-label">Length</label>
+              <input type="number" className="solo-input" placeholder="Min" value={user2.minLength ?? ''} onChange={e => handleInput(2, 'minLength', Number(e.target.value))} style={{ maxWidth: 80 }} />
+              <span style={{ margin: '0 4px' }}>-</span>
+              <input type="number" className="solo-input" placeholder="Max" value={user2.maxLength ?? ''} onChange={e => handleInput(2, 'maxLength', Number(e.target.value))} style={{ maxWidth: 80 }} />
+            </div>
+            <div className="solo-year">
+              <label className="solo-label">Year</label>
+              <input type="text" className="solo-input" placeholder="Year" value={user2.releaseYear || ''} onChange={e => handleInput(2, 'releaseYear', e.target.value)} style={{ maxWidth: 100 }} />
+            </div>
+            <div className="solo-publisher">
+              <label className="solo-label">Publisher</label>
+              <input type="text" className="solo-input" placeholder="Publisher" value={user2.publisher || ''} onChange={e => handleInput(2, 'publisher', e.target.value)} style={{ maxWidth: 120 }} />
+            </div>
           </div>
         </div>
       </div>
-      <div className="collab-search-row">
+      <div className="collab-search-row-bottom">
         <button type="submit" className="collab-search-btn" disabled={submitting || !user1.query.trim() || !user2.query.trim()}>
           {submitting ? 'SEARCHING...' : 'SEARCH TOGETHER'}
         </button>
