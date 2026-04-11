@@ -1,3 +1,28 @@
+/* Add search row/button for collaborative submit */
+.collab-search-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.2em;
+}
+.collab-search-btn {
+  background: #aee3d6;
+  color: #2d3a3a;
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  border: none;
+  border-radius: 0.7em;
+  padding: 0.7em 2.2em;
+  box-shadow: 0 1px 4px #e0e0e0;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.collab-search-btn:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
 body {
   background: #eaf6d5;
 }

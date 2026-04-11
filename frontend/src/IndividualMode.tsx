@@ -7,23 +7,19 @@ interface IndividualModeProps {
 
 function IndividualMode({ onSearch }: IndividualModeProps) {
   return (
-    <div className="individual-bg">
-      <header className="individual-header">
-        <h1 className="individual-title">Peas <em>in a Podcast</em> <span className="individual-logo">(Logo)</span></h1>
-        <div className="individual-subtitle">Today, I’m listening...</div>
-        <div className="individual-toggle-row">
-          <button className="individual-toggle left active">by myself</button>
-          <button className="individual-toggle right">with my bestie</button>
-        </div>
-      </header>
-      <div className="individual-main-form-box">
-        <div className="individual-form-side">
-          <span className="individual-form-label">Query</span>
-          <QueryComponent title="" idPrefix="individual" onSearch={onSearch} />
-        </div>
-        <div className="individual-instructions-side">
-          <span className="individual-form-label">Instructions</span>
-          <div className="individual-instructions-box"></div>
+    <div className="solo-layout">
+      <div className="solo-form-card">
+        <QueryComponent mode="solo" onSearch={onSearch} />
+      </div>
+      <div className="instructions-panel">
+        <h3>Instructions</h3>
+        <div className="instructions-box">
+          <ul>
+            <li>Enter a search query and select your desired filters.</li>
+            <li>Genres can be multi-selected using Ctrl (Windows) or Cmd (Mac).</li>
+            <li>Adjust the length metric and range as needed.</li>
+            <li>Click <b>SEARCH</b> to find matching podcasts.</li>
+          </ul>
         </div>
       </div>
     </div>

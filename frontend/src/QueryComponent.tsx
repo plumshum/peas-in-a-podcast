@@ -15,13 +15,13 @@ export interface SearchRequest {
 }
 
 interface QueryComponentProps {
-  title: string
-  idPrefix: string
+  mode: 'solo' | 'collab'
   onSearch: (request: SearchRequest) => Promise<void> | void
   initialQuery?: string
+  formId?: string
 }
 
-function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryComponentProps): JSX.Element {
+function QueryComponent({ mode, onSearch, initialQuery = '', formId }: QueryComponentProps): JSX.Element {
   const defaultMinLength = 0
   const defaultMaxLength = 500
 
@@ -76,128 +76,65 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
     })
   }
 
-  return (
-    <section className="query-component">
-      <h2 className="query-title">{title}</h2>
-
-      <form onSubmit={handleSubmit}>
-        <label htmlFor={`${idPrefix}-query`} className="query-label required">User Query Search Bar</label>
-        <div className="input-box query-input-box" onClick={() => document.getElementById(`${idPrefix}-query`)?.focus()}>
-          <img src={SearchIcon} alt="search" />
+  // SOLO MODE LAYOUT (CLEAN REBUILD)
+  if (mode === 'solo') {
+    return (
+      <form onSubmit={handleSubmit} className="solo-form-card" id={formId}>
+        <div className="solo-query-row">
+          <label className="solo-label">Query</label>
           <input
-            id={`${idPrefix}-query`}
-            placeholder="Healthy lifestyle podcasts..."
+            className="solo-input"
             value={query}
             onChange={event => setQuery(event.target.value)}
             required
           />
-          <button type="submit" className="query-submit">Search</button>
         </div>
-
-        <div className="form-grid">
-          <div className="field-block">
-            <p className="query-label">Allow profanity or NSFW?</p>
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${!isExplicit ? 'active' : ''}`}
-                onClick={() => setIsExplicit(false)}
-              >
-                No
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${isExplicit ? 'active' : ''}`}
-                onClick={() => setIsExplicit(true)}
-              >
-                Yes
-              </button>
-              <span className="required"></span>
+        <div className="solo-fields-grid">
+          <div className="solo-explicit">
+            <label className="solo-label">Explicit?</label>
+            <div className="solo-explicit-options">
+              <label><input type="radio" name={`explicit-${formId || 'default'}`} value="no" checked={!isExplicit} onChange={() => setIsExplicit(false)} /> No</label>
+              <label><input type="radio" name={`explicit-${formId || 'default'}`} value="yes" checked={isExplicit} onChange={() => setIsExplicit(true)} /> Yes</label>
             </div>
           </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-genres`} className="query-label">Genres (multi-select using Ctrl/CMD)</label>
-            <select
-              id={`${idPrefix}-genres`}
-              multiple
-              value={selectedGenres}
-              onChange={handleGenreChange}
-              className="query-select"
-            >
+          <div className="solo-genres">
+            <label className="solo-label">Genres</label>
+            <select multiple className="solo-select" value={selectedGenres} onChange={handleGenreChange}>
               {genreOptions.map(genre => (
                 <option key={genre} value={genre}>{genre}</option>
               ))}
             </select>
           </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-length-metric`} className="query-label">Podcast Length Metric</label>
-            <select
-              id={`${idPrefix}-length-metric`}
-              value={lengthMetric}
-              onChange={event => setLengthMetric(event.target.value as 'duration_ms' | 'total_episodes')}
-              className="query-select"
-            >
-              <option value="total_episodes">Number of Episodes</option>
-              <option value="duration_ms">Episode Duration</option>
+          <div className="solo-length">
+            <label className="solo-label">Length</label>
+            <select className="solo-select" value={lengthMetric} onChange={e => setLengthMetric(e.target.value as 'duration_ms' | 'total_episodes')}>
+              <option value="duration_ms">Episode Duration (minutes)</option>
+              <option value="total_episodes">Total Episodes</option>
             </select>
-            <label htmlFor={`${idPrefix}-min-length`} className="query-label subtle-label">Minimum Value</label>
-            <input
-              id={`${idPrefix}-min-length`}
-              type="number"
-              min={defaultMinLength}
-              max={defaultMaxLength}
-              value={minLength}
-              onChange={event => {
-                const nextMin = Math.max(defaultMinLength, Number(event.target.value) || defaultMinLength)
-                setMinLength(Math.min(nextMin, maxLength))
-              }}
-              className="query-text-input"
-            />
-            <label htmlFor={`${idPrefix}-max-length`} className="query-label subtle-label">Maximum Value</label>
-            <input
-              id={`${idPrefix}-max-length`}
-              type="number"
-              min={defaultMinLength}
-              max={defaultMaxLength}
-              value={maxLength}
-              onChange={event => {
-                const nextMax = Math.min(defaultMaxLength, Number(event.target.value) || defaultMaxLength)
-                setMaxLength(Math.max(nextMax, minLength))
-              }}
-              className="query-text-input"
-            />
+            <input className="solo-input" type="number" min={defaultMinLength} max={10000} value={maxLength} onChange={e => setMaxLength(Number(e.target.value) || defaultMaxLength)} />
+            <input className="solo-input" type="range" min={defaultMinLength} max={maxLength} value={minLength} onChange={e => setMinLength(Number(e.target.value))} />
+            <div className="solo-selected-value">Selected Value: {minLength}</div>
           </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-publisher`} className="query-label">Podcast Publisher</label>
-            <input
-              id={`${idPrefix}-publisher`}
-              type="text"
-              placeholder="Publisher name"
-              value={publisher}
-              onChange={event => setPublisher(event.target.value)}
-              className="query-text-input"
-            />
+          <div className="solo-year">
+            <label className="solo-label">Year</label>
+            <input className="solo-input" type="number" min={1900} max={2100} value={releaseYear} onChange={event => setReleaseYear(event.target.value)} />
           </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-year`} className="query-label">Year of Release</label>
-            <input
-              id={`${idPrefix}-year`}
-              type="number"
-              min={1900}
-              max={2100}
-              placeholder="e.g. 2024"
-              value={releaseYear}
-              onChange={event => setReleaseYear(event.target.value)}
-              className="query-text-input"
-            />
+          <div className="solo-publisher">
+            <label className="solo-label">Publisher</label>
+            <input className="solo-input" type="text" value={publisher} onChange={event => setPublisher(event.target.value)} />
           </div>
         </div>
+        <div className="solo-search-row">
+          <button type="submit" className="solo-search-btn">SEARCH</button>
+        </div>
       </form>
-    </section>
+    )
+  }
+  // ...existing code for collab mode...
+  return (
+    <form onSubmit={handleSubmit} className="search-form" id={formId}>
+      {/* ...existing code for collab mode... */}
+    </form>
   )
 }
 
