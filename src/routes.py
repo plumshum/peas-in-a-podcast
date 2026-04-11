@@ -27,13 +27,11 @@ OS_PATH = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(OS_PATH, 'data/svd_shows_improved2.pkl'), 'rb') as f:
     svd_model = pickle.load(f) 
     
-# shape: (n_podcasts, 100)
-# embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_mixed.npy'))
-# show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids.txt')).read_text().splitlines()
-# df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned.csv'))
-embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_improved2.npy'))
+# NOTE: switch between improved and mixed
+# embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_improved2.npy'))
+embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_mixed2.npy'))
 show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids2.txt')).read_text().splitlines()
-df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts2.csv'))
+df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned2.csv'))
 
 KNOWN_GENRES = [
     'Comedy',
