@@ -3,23 +3,36 @@ import './IndividualMode.css';
 
 interface IndividualModeProps {
   onSearch: (request: SearchRequest) => Promise<void> | void;
+  initialQuery?: string;
+  draft?: SearchRequest;
+  onDraftChange?: (request: SearchRequest) => void;
 }
 
-function IndividualMode({ onSearch }: IndividualModeProps) {
+function IndividualMode({ onSearch, initialQuery = '', draft, onDraftChange }: IndividualModeProps) {
   return (
-    <div className="solo-layout">
-      <div className="solo-form-card">
-        <QueryComponent mode="solo" onSearch={onSearch} />
-      </div>
-      <div className="instructions-panel">
-        <h3>Instructions</h3>
-        <div className="instructions-box">
-          <ul>
-            <li>Enter a search query and select your desired filters.</li>
-            <li>Genres can be multi-selected using Ctrl (Windows) or Cmd (Mac).</li>
-            <li>Adjust the length metric and range as needed.</li>
-            <li>Click <b>SEARCH</b> to find matching podcasts.</li>
-          </ul>
+    <div className="individual-mode-fullscreen">
+      <div className="solo-layout">
+        <div className="solo-form-card">
+          <QueryComponent
+            onSearch={onSearch}
+            initialQuery={initialQuery}
+            initialRequest={draft}
+            onDraftChange={onDraftChange}
+          />
+        </div>
+        <div className="instructions-panel">
+          <h3 className="instructions-title">Instructions</h3>
+          <div className="instructions-box">
+            <ul>
+              <li>Enter your query (example: Health Podcasts).</li>
+              <li>Use the Explicit Content toggle to filter explicit content.</li>
+              <li> We have multiple options to filter your results. These are <b> hard filters</b> that will narrow down your search results.</li>
+              <li>Select any genres you want with the checklist!</li>
+              <li>Set your preferred min and max values for the selected length metric. Use either episode count, or episode duration (in minutes).</li>
+              <li>Add a release year (example: 2024) and publisher (example: NPR) as needed.</li>
+              <li>Click <b>SEARCH</b> to find matching podcasts.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

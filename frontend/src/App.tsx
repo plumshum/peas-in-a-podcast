@@ -1,27 +1,50 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import ResultInstructions from './assets/instr result.png'
+// import ResultInstructions from './assets/instr result.png'
 import { Podcast } from './types'
 import Chat from './Chat'
 import { type SearchRequest } from './QueryComponent'
-import QueryComponent from './QueryComponent'
 import ResultComponent from './ResultComponent'
 import MainLogo from './assets/main_logo.png'
 import CollaborativeMode from './CollaborativeMode'
+import IndividualMode from './IndividualMode'
 type ListeningMode = 'solo' | 'collab'
 type AppView = 'query' | 'results'
+type SearchContext =
+  | { mode: 'solo'; request: SearchRequest }
+  | { mode: 'collab'; user1: SearchRequest; user2: SearchRequest }
 
 function App(): JSX.Element {
+  const defaultSearchRequest: SearchRequest = {
+    query: '',
+    explicit: false,
+    genres: [],
+    excludedGenres: [],
+    publisher: '',
+    releaseYear: '',
+    lengthMetric: 'total_episodes',
+    minLength: 0,
+    maxLength: 500,
+  }
+
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [listeningMode, setListeningMode] = useState<ListeningMode>('solo')
   const [view, setView] = useState<AppView>('query')
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
+  const [searchContext, setSearchContext] = useState<SearchContext | null>(null)
+  const [chatSeedTerm, setChatSeedTerm] = useState<string>('')
+  const [soloDraft, setSoloDraft] = useState<SearchRequest>(defaultSearchRequest)
+  const [collabDraftUser1, setCollabDraftUser1] = useState<SearchRequest>(defaultSearchRequest)
+  const [collabDraftUser2, setCollabDraftUser2] = useState<SearchRequest>(defaultSearchRequest)
 
   useEffect(() => {
     fetch('/api/config').then(r => r.json()).then(data => setUseLlm(data.use_llm))
   }, [])
 
   const handleSearch = async (request: SearchRequest): Promise<void> => {
+    setSoloDraft(request)
+    setSearchContext({ mode: 'solo', request })
+
     if (request.query.trim() === '') {
       setPodcasts([])
       setView('query')
@@ -46,8 +69,18 @@ function App(): JSX.Element {
     setView('query')
   }
 
+  const handleChatSearch = async (value: string): Promise<void> => {
+    setListeningMode('solo')
+    setChatSeedTerm(value)
+    await handleSearch({ query: value })
+  }
+
   // Real collaborative handler
   const handleCollaborativeSearch = async (user1: SearchRequest, user2: SearchRequest): Promise<void> => {
+    setCollabDraftUser1(user1)
+    setCollabDraftUser2(user2)
+    setSearchContext({ mode: 'collab', user1, user2 })
+
     // Example: call a real collaborative endpoint, e.g. /api/collab_podcasts
     const params = new URLSearchParams()
     // You may want to send both users' queries as JSON, or as separate params
@@ -58,21 +91,70 @@ function App(): JSX.Element {
     setPodcasts(data)
     setView('results')
   }
+
+  const formatLengthMetric = (metric?: SearchRequest['lengthMetric']): string => {
+    if (metric === 'duration_ms') return 'Episode Duration (minutes)'
+    return 'Total Episodes'
+  }
+
+  const formatRequestSummary = (request: SearchRequest): Array<{ label: string; value: string }> => {
+    return [
+      { label: 'Query', value: request.query || 'N/A' },
+      { label: 'Explicit', value: request.explicit ? 'Yes' : 'No' },
+      { label: 'Genres', value: request.genres?.length ? request.genres.join(', ') : 'Any' },
+      { label: 'Publisher', value: request.publisher?.trim() || 'Any' },
+      { label: 'Year', value: request.releaseYear?.trim() || 'Any' },
+      {
+        label: 'Length',
+        value: `${formatLengthMetric(request.lengthMetric)}: ${request.minLength ?? 0} - ${request.maxLength ?? 500}`,
+      },
+    ]
+  }
+
+  const renderSummaryCard = (title: string, request: SearchRequest): JSX.Element => (
+    <div className="search-summary-card">
+      <h4>{title}</h4>
+      <div className="search-summary-grid">
+        {formatRequestSummary(request).map(item => (
+          <div key={`${title}-${item.label}`} className="search-summary-item">
+            <span className="search-summary-label">{item.label}</span>
+            <span className="search-summary-value">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderSearchSummary = (): JSX.Element | null => {
+    if (!searchContext) return null
+
+    if (searchContext.mode === 'solo') {
+      return renderSummaryCard('Your Search', searchContext.request)
+    }
+
+    return (
+      <div className="search-summary-collab-wrap">
+        {renderSummaryCard('User 1 Preferences', searchContext.user1)}
+        {renderSummaryCard('User 2 Preferences', searchContext.user2)}
+      </div>
+    )
+  }
+
   if (useLlm === null) return <></>
 
   return (
     <div className="page-root">
-      <div className="centered-app-shell">
+      <div className={`centered-app-shell ${view === 'query' && listeningMode === 'solo' ? 'solo-fullscreen-shell' : ''}`}>
         <header className="main-header">
-          <h1 className="main-title">Peas <em>in a Podcast</em></h1>
+          <h1 className="main-title">Peas in a Podcast</h1>
           <div className="main-logo">
             <img src={MainLogo} alt="Peas in a Podcast logo" className="main-logo-img" />
           </div>
-          <div className="main-subtitle">Today, I’m listening...</div>
+          {view === 'query' && <div className="main-subtitle">Today, I’m listening...</div>}
         </header>
         {/* Only show toggle buttons in form view */}
         {view === 'query' && (
-          <div className="mode-toggle-row">
+          <div className={`mode-toggle-row ${listeningMode === 'solo' ? 'solo-toggle-row' : 'collab-toggle-row'}`}>
             <button
               className={`mode-toggle left${listeningMode === 'solo' ? ' active' : ''}`}
               onClick={() => setListeningMode('solo')}
@@ -93,28 +175,31 @@ function App(): JSX.Element {
           {view === 'query' && (
             <>
               {listeningMode === 'solo' ? (
-                <div className="solo-layout">
-                  <div className="solo-form-card">
-                    <QueryComponent
-                      mode="solo"
-                      onSearch={handleSearch}
-                    />
-                  </div>
-                  <div className="instructions-panel">
-                    <span className="instructions-label">Instructions</span>
-                    <div className="instructions-box">
-                      {/* Add instructions content here */}
-                    </div>
-                  </div>
-                </div>
+                <IndividualMode
+                  onSearch={handleSearch}
+                  initialQuery={chatSeedTerm}
+                  draft={soloDraft}
+                  onDraftChange={setSoloDraft}
+                />
               ) : (
-                <CollaborativeMode onCollaborativeSearch={handleCollaborativeSearch} />
+                <CollaborativeMode
+                  onCollaborativeSearch={handleCollaborativeSearch}
+                  initialUser1={collabDraftUser1}
+                  initialUser2={collabDraftUser2}
+                  onDraftChange={(user1, user2) => {
+                    setCollabDraftUser1(user1)
+                    setCollabDraftUser2(user2)
+                  }}
+                />
               )}
             </>
           )}
           {view === 'results' && (
             <div className="results-area">
-              <img src={ResultInstructions} alt="results instructions" className="results-instructions" />
+              <div className="search-summary-panel">
+                <h3>Search Breakdown</h3>
+                {renderSearchSummary()}
+              </div>
               <div className="results-toolbar">
                 <button type="button" className="back-button" onClick={handleBackToQuery}>
                   Back to Search
@@ -130,7 +215,7 @@ function App(): JSX.Element {
             </div>
           )}
         </div>
-        {useLlm && <Chat onSearchTerm={query => handleSearch({ query })} />}
+        {useLlm && <Chat onSearchTerm={handleChatSearch} />}
       </div>
     </div>
   )

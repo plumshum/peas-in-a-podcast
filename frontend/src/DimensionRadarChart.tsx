@@ -27,21 +27,23 @@ function SingleRadarChart({ dimensions, title, color }: SingleRadarChartProps): 
   return (
     <div className="single-radar-container">
       <h5 className="radar-subtitle">{title}</h5>
-      <ResponsiveContainer width="100%" height={280}>
-        <RadarChart data={chartData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <PolarGrid stroke="#ddd" />
-          <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 10 }} />
-          <PolarRadiusAxis angle={90} domain={[0, 1]} tick={{ fontSize: 9 }} />
-          <Radar
-            name={title}
-            dataKey="value"
-            stroke={color}
-            fill={color}
-            fillOpacity={0.5}
-            isAnimationActive={false}
-          />
-        </RadarChart>
-      </ResponsiveContainer>
+      <div className="radar-canvas-wrap">
+        <ResponsiveContainer width="100%" height={420}>
+          <RadarChart data={chartData} margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
+            <PolarGrid stroke="#afd7c4" />
+            <PolarAngleAxis dataKey="dimension" tick={{ fontSize: 13 }} />
+            <PolarRadiusAxis angle={90} domain={[0, 1]} tick={{ fontSize: 11 }} />
+            <Radar
+              name={title}
+              dataKey="value"
+              stroke={color}
+              fill={color}
+              fillOpacity={0.45}
+              isAnimationActive={false}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
       <div className="dimension-legend-single">
         {chartData.map((d, idx) => (
           <div key={idx} className="dimension-item-single">
@@ -85,14 +87,14 @@ function DimensionRadarChart({ dimensions }: DimensionRadarChartProps): JSX.Elem
           <SingleRadarChart 
             dimensions={dimensions.positive} 
             title="Top Positive Activations" 
-            color="#4caf50"
+            color="#4e8c3b"
           />
         )}
         {hasNegative && (
           <SingleRadarChart 
             dimensions={dimensions.negative} 
             title="Top Negative Activations" 
-            color="#ff6b6b"
+            color="#d98a8a"
           />
         )}
       </div>

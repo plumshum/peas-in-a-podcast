@@ -1,6 +1,60 @@
 body {
-  background: #eaf6d5;
+  background: #d3eaae;
 }
+
+.individual-mode-fullscreen {
+  width: 100%;
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: stretch;
+}
+
+.individual-mode-fullscreen .solo-layout {
+  width: 100%;
+  max-width: none;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.individual-mode-fullscreen .solo-form-card {
+  padding: 28px;
+}
+
+.individual-mode-fullscreen .instructions-panel {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  padding: 28px;
+}
+
+.instructions-title {
+  margin: 0;
+  font-family: 'Fredoka One', 'Comic Sans MS', cursive, sans-serif;
+  color: #3a5a40;
+  font-size: 1.3rem;
+}
+
+.individual-mode-fullscreen .instructions-box {
+  min-height: 100%;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.individual-mode-fullscreen .instructions-box ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+@media (max-width: 1200px) {
+  .individual-mode-fullscreen .solo-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .individual-mode-fullscreen .instructions-panel {
+    min-width: 0;
+  }
+}
+
 .individual-bg {
   background: #eaf6d5;
   min-height: 100vh;

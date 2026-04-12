@@ -41,6 +41,53 @@
   height: 176px;
   box-sizing: border-box;
 }
+
+.genre-selected-chips {
+  min-height: 36px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.genre-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #d9edf0;
+  border: 1px solid #9ab9bd;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+}
+
+.genre-chip-remove {
+  border: none;
+  background: transparent;
+  color: #6b2c2c;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.genre-checklist {
+  max-height: 176px;
+  overflow-y: auto;
+  background: #f7faf7;
+  border: 1.2px solid #bfc9c9;
+  border-radius: 0.3em;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.genre-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.96rem;
+}
+
 .solo-input {
   width: 100%;
   box-sizing: border-box;
@@ -55,6 +102,11 @@
   font-size: 1.13rem;
   margin-bottom: 0.1em;
   font-weight: 600;
+}
+
+.required::after {
+  content: ' *';
+  color: #d21f3c;
 }
 .solo-select {
   background: #f7faf7;
@@ -92,7 +144,6 @@
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
 }
-*** End Patch
 
 .instructions-panel {
   width: 260px;
@@ -111,7 +162,6 @@
   margin-top: 10px;
 }
 
-/* --- Pretty, compact, pastel, reference-matching form styles --- */
 .form-grid {
   margin-top: 0.5rem;
   background: #ede1f3;

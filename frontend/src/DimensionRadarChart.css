@@ -1,28 +1,32 @@
 .dimension-radar-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   margin-top: 1.5rem;
   padding: 1rem;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  background: #e8f6e0;
+  border-radius: 16px;
+  border: 1px solid #b3d2bf;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  resize: none;
+  overflow: visible;
+  box-sizing: border-box;
 }
 
 .radar-title {
   margin: 0 0 1rem 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 1.1rem;
+  font-family: 'Fredoka One', 'Comic Sans MS', cursive, sans-serif;
+  color: #2f6144;
   width: 100%;
 }
 
 .radar-charts-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1rem;
   width: 100%;
   margin-bottom: 0.5rem;
 }
@@ -30,18 +34,31 @@
 .single-radar-container {
   display: flex;
   flex-direction: column;
-  background-color: #fff;
-  border-radius: 6px;
-  padding: 0.8rem;
-  border: 1px solid #e8e8e8;
+  background: #f6fff0;
+  border-radius: 12px;
+  padding: 0.9rem;
+  border: 1px solid #b3d2bf;
 }
 
 .radar-subtitle {
   margin: 0 0 0.8rem 0;
-  font-size: 12px;
+  font-size: 1rem;
   font-weight: 600;
-  color: #555;
+  color: #356447;
   text-align: center;
+}
+
+.radar-canvas-wrap {
+  width: 100%;
+  min-width: 0;
+  min-height: 420px;
+  height: 420px;
+  overflow: hidden;
+  border: 1px solid #9fc5ad;
+  border-radius: 10px;
+  padding: 10px;
+  box-sizing: border-box;
+  background: #ffffff;
 }
 
 .no-dimensions {
@@ -70,8 +87,8 @@
   flex-direction: column;
   gap: 0.4rem;
   margin-top: 0.8rem;
-  font-size: 11px;
-  max-height: 120px;
+  font-size: 13px;
+  max-height: 170px;
   overflow-y: auto;
 }
 
@@ -79,25 +96,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.4rem 0.6rem;
-  background-color: #f9f9f9;
+  padding: 0.5rem 0.7rem;
+  background-color: #edf9ea;
   border-radius: 3px;
-  border-left: 3px solid #ddd;
+  border-left: 3px solid #9fc5ad;
   gap: 0.8rem;
 }
 
 .dimension-label-single {
   font-weight: 500;
-  color: #666;
+  color: #3e5b48;
   flex: 1;
   word-break: break-word;
-  font-size: 10px;
-  line-height: 1.2;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .dimension-value-single {
   font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
@@ -122,6 +139,19 @@
 
   .single-radar-container {
     padding: 0.6rem;
+  }
+
+  .dimension-radar-container {
+    min-width: 0;
+    width: 100%;
+    resize: none;
+  }
+
+  .radar-canvas-wrap {
+    min-width: 0;
+    width: 100%;
+    min-height: 340px;
+    height: 360px;
   }
 
   .dimension-legend-single {
