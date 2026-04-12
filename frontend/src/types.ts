@@ -4,6 +4,23 @@ export interface Episode {
   imdb_rating: number;
 }
 
+export interface DimensionActivation {
+  dimension: number;
+  value: number;
+  label: string;
+}
+
+export interface DimensionGroup {
+  positive: DimensionActivation[];
+  negative: DimensionActivation[];
+}
+
+export interface Episode {
+  title: string;
+  descr: string;
+  imdb_rating: number;
+}
+
 export interface Podcast {
   title: string;
   description: string;
@@ -18,6 +35,7 @@ export interface Podcast {
   popularity?: number;
   episode_count?: number;
   avg_episode_time?: number;
+  top_dimensions?: DimensionGroup;
 }
 
 export interface SearchPayload {

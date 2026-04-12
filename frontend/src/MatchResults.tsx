@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Podcast } from './types'
+import DimensionRadarChart from './DimensionRadarChart'
 import './MatchResults.css'
 
 interface MatchPodcast extends Podcast {
@@ -10,9 +11,10 @@ interface MatchPodcast extends Podcast {
 interface MatchResultsProps {
   matchPct: number
   results: MatchPodcast[]
+  combinedQuery?: string
 }
 
-function MatchResults({ matchPct, results }: MatchResultsProps): JSX.Element {
+function MatchResults({ matchPct, results, combinedQuery }: MatchResultsProps): JSX.Element {
   const [selectedPodcast, setSelectedPodcast] = useState<MatchPodcast | null>(null)
 
   const htmlToText = (value: string): string => {
@@ -104,6 +106,7 @@ function MatchResults({ matchPct, results }: MatchResultsProps): JSX.Element {
         </div>
         <p className="match-label">{matchLabel}</p>
         <p className="match-sub">{results.length} podcasts for both of you</p>
+        {combinedQuery && <p className="match-combined-query">Combined query: {combinedQuery}</p>}
       </div>
 
       {/* ── Results grid — same structure as ResultComponent ─────────── */}
@@ -213,6 +216,11 @@ function MatchResults({ matchPct, results }: MatchResultsProps): JSX.Element {
               <h3>Why you'd {'<3'} it together</h3>
               <p>{buildWhyBothLoveIt(selectedPodcast)}</p>
             </div>
+
+            {selectedPodcast.top_dimensions &&
+              (selectedPodcast.top_dimensions.positive?.length > 0 || selectedPodcast.top_dimensions.negative?.length > 0) && (
+                <DimensionRadarChart dimensions={selectedPodcast.top_dimensions} />
+              )}
 
             <div className="modal-actions">
               <a

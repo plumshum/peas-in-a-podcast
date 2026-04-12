@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Podcast } from './types'
+import DimensionRadarChart from './DimensionRadarChart'
 import './ResultComponent.css'
 
 interface ResultComponentProps {
@@ -45,12 +46,13 @@ function ResultComponent({ podcasts }: ResultComponentProps): JSX.Element {
     const genres = getGenres(podcast)
     const topGenres = genres.slice(0, 3).join(', ')
     const scoreText = podcast.score !== undefined ? ` with a similarity score of ${podcast.score.toFixed(3)}` : ''
+    const preface = 'This feature will be improved with future RAG integration. '
 
     if (topGenres) {
-      return `This show aligns with your interest in ${topGenres}${scoreText}.`
+      return `${preface}This show aligns with your interest in ${topGenres}${scoreText}.`
     }
 
-    return `This recommendation matches your query intent${scoreText}.`
+    return `${preface}This recommendation matches your query intent${scoreText}.`
   }
 
   const selectedGenres = useMemo(
@@ -81,6 +83,9 @@ function ResultComponent({ podcasts }: ResultComponentProps): JSX.Element {
 
   return (
     <>
+      <div className="results-heading-wrap">
+        <h2 className="results-heading">Here are {Math.min(podcasts.length, 5)} podcasts for you</h2>
+      </div>
       <div className="results-container">
         {podcasts.map((podcast, index) => {
           const genres = getGenres(podcast)
@@ -147,6 +152,11 @@ function ResultComponent({ podcasts }: ResultComponentProps): JSX.Element {
               <h3>Why you'd {'<3'} it</h3>
               <p>{buildWhyYouLoveIt(selectedPodcast)}</p>
             </div>
+
+            {selectedPodcast.top_dimensions && 
+              (selectedPodcast.top_dimensions.positive?.length > 0 || selectedPodcast.top_dimensions.negative?.length > 0) && (
+              <DimensionRadarChart dimensions={selectedPodcast.top_dimensions} />
+            )}
 
             <div className="modal-actions">
               <a

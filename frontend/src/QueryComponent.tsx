@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import SearchIcon from './assets/mag.png'
 import './QueryComponent.css'
 
@@ -15,24 +15,33 @@ export interface SearchRequest {
 }
 
 interface QueryComponentProps {
-  title: string
-  idPrefix: string
   onSearch: (request: SearchRequest) => Promise<void> | void
   initialQuery?: string
+  initialRequest?: SearchRequest
+  onDraftChange?: (request: SearchRequest) => void
+  showSubmit?: boolean
+  radioNamePrefix?: string
 }
 
-function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryComponentProps): JSX.Element {
+function QueryComponent({
+  onSearch,
+  initialQuery = '',
+  initialRequest,
+  onDraftChange,
+  showSubmit = true,
+  radioNamePrefix = 'solo',
+}: QueryComponentProps): JSX.Element {
   const defaultMinLength = 0
   const defaultMaxLength = 500
 
-  const [query, setQuery] = useState<string>(initialQuery)
-  const [isExplicit, setIsExplicit] = useState<boolean>(false)
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([])
-  const [lengthMetric, setLengthMetric] = useState<'duration_ms' | 'total_episodes'>('total_episodes')
-  const [minLength, setMinLength] = useState<number>(defaultMinLength)
-  const [maxLength, setMaxLength] = useState<number>(defaultMaxLength)
-  const [publisher, setPublisher] = useState<string>('')
-  const [releaseYear, setReleaseYear] = useState<string>('')
+  const [query, setQuery] = useState<string>(initialRequest?.query ?? initialQuery)
+  const [isExplicit, setIsExplicit] = useState<boolean>(initialRequest?.explicit ?? false)
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(initialRequest?.genres ?? [])
+  const [lengthMetric, setLengthMetric] = useState<'duration_ms' | 'total_episodes'>(initialRequest?.lengthMetric ?? 'total_episodes')
+  const [minLength, setMinLength] = useState<number>(initialRequest?.minLength ?? defaultMinLength)
+  const [maxLength, setMaxLength] = useState<number>(initialRequest?.maxLength ?? defaultMaxLength)
+  const [publisher, setPublisher] = useState<string>(initialRequest?.publisher ?? '')
+  const [releaseYear, setReleaseYear] = useState<string>(initialRequest?.releaseYear ?? '')
 
   // TODO: can change this with more experimentation
   const genreOptions = useMemo(  
@@ -53,13 +62,36 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
     [],
   )
 
-  useEffect(() => {
-    setQuery(initialQuery)
-  }, [initialQuery])
+  const emitDraftChange = (nextRequest: Partial<SearchRequest>): void => {
+    if (!onDraftChange) return
 
-  const handleGenreChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
-    const values = Array.from(event.target.selectedOptions, option => option.value)
-    setSelectedGenres(values)
+    onDraftChange({
+      query,
+      explicit: isExplicit,
+      genres: selectedGenres,
+      publisher,
+      releaseYear,
+      lengthMetric,
+      minLength,
+      maxLength,
+      ...nextRequest,
+    })
+  }
+
+  const handleGenreToggle = (genre: string): void => {
+    setSelectedGenres(prev => {
+      const nextGenres = prev.includes(genre) ? prev.filter(item => item !== genre) : [...prev, genre]
+      emitDraftChange({ genres: nextGenres })
+      return nextGenres
+    })
+  }
+
+  const handleGenreRemove = (genre: string): void => {
+    setSelectedGenres(prev => {
+      const nextGenres = prev.filter(item => item !== genre)
+      emitDraftChange({ genres: nextGenres })
+      return nextGenres
+    })
   }
 
   const handleSubmit = async (event: React.FormEvent): Promise<void> => {
@@ -76,128 +108,141 @@ function QueryComponent({ title, idPrefix, onSearch, initialQuery = '' }: QueryC
     })
   }
 
-  return (
-    <section className="query-component">
-      <h2 className="query-title">{title}</h2>
-
-      <form onSubmit={handleSubmit}>
-        <label htmlFor={`${idPrefix}-query`} className="query-label required">User Query Search Bar</label>
-        <div className="input-box query-input-box" onClick={() => document.getElementById(`${idPrefix}-query`)?.focus()}>
+  const formFields = (
+    <>
+      <div className="solo-query-row">
+        <label className="solo-label required">Query</label>
+        <div className="input-box query-input-box">
           <img src={SearchIcon} alt="search" />
           <input
-            id={`${idPrefix}-query`}
-            placeholder="Healthy lifestyle podcasts..."
+            className="solo-input"
             value={query}
-            onChange={event => setQuery(event.target.value)}
+            placeholder="Health Podcasts"
+            onChange={event => {
+              const nextQuery = event.target.value
+              setQuery(nextQuery)
+              emitDraftChange({ query: nextQuery })
+            }}
             required
           />
-          <button type="submit" className="query-submit">Search</button>
         </div>
-
-        <div className="form-grid">
-          <div className="field-block">
-            <p className="query-label">Allow profanity or NSFW?</p>
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${!isExplicit ? 'active' : ''}`}
-                onClick={() => setIsExplicit(false)}
-              >
-                No
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${isExplicit ? 'active' : ''}`}
-                onClick={() => setIsExplicit(true)}
-              >
-                Yes
-              </button>
-              <span className="required"></span>
-            </div>
-          </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-genres`} className="query-label">Genres (multi-select using Ctrl/CMD)</label>
-            <select
-              id={`${idPrefix}-genres`}
-              multiple
-              value={selectedGenres}
-              onChange={handleGenreChange}
-              className="query-select"
-            >
-              {genreOptions.map(genre => (
-                <option key={genre} value={genre}>{genre}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-length-metric`} className="query-label">Podcast Length Metric</label>
-            <select
-              id={`${idPrefix}-length-metric`}
-              value={lengthMetric}
-              onChange={event => setLengthMetric(event.target.value as 'duration_ms' | 'total_episodes')}
-              className="query-select"
-            >
-              <option value="total_episodes">Number of Episodes</option>
-              <option value="duration_ms">Episode Duration</option>
-            </select>
-            <label htmlFor={`${idPrefix}-min-length`} className="query-label subtle-label">Minimum Value</label>
-            <input
-              id={`${idPrefix}-min-length`}
-              type="number"
-              min={defaultMinLength}
-              max={defaultMaxLength}
-              value={minLength}
-              onChange={event => {
-                const nextMin = Math.max(defaultMinLength, Number(event.target.value) || defaultMinLength)
-                setMinLength(Math.min(nextMin, maxLength))
-              }}
-              className="query-text-input"
-            />
-            <label htmlFor={`${idPrefix}-max-length`} className="query-label subtle-label">Maximum Value</label>
-            <input
-              id={`${idPrefix}-max-length`}
-              type="number"
-              min={defaultMinLength}
-              max={defaultMaxLength}
-              value={maxLength}
-              onChange={event => {
-                const nextMax = Math.min(defaultMaxLength, Number(event.target.value) || defaultMaxLength)
-                setMaxLength(Math.max(nextMax, minLength))
-              }}
-              className="query-text-input"
-            />
-          </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-publisher`} className="query-label">Podcast Publisher</label>
-            <input
-              id={`${idPrefix}-publisher`}
-              type="text"
-              placeholder="Publisher name"
-              value={publisher}
-              onChange={event => setPublisher(event.target.value)}
-              className="query-text-input"
-            />
-          </div>
-
-          <div className="field-block">
-            <label htmlFor={`${idPrefix}-year`} className="query-label">Year of Release</label>
-            <input
-              id={`${idPrefix}-year`}
-              type="number"
-              min={1900}
-              max={2100}
-              placeholder="e.g. 2024"
-              value={releaseYear}
-              onChange={event => setReleaseYear(event.target.value)}
-              className="query-text-input"
-            />
+      </div>
+      <div className="solo-fields-grid">
+        <div className="solo-explicit">
+          <label className="solo-label required">Explicit?</label>
+          <div className="solo-explicit-options">
+            <label><input type="radio" name={`${radioNamePrefix}-explicit`} value="no" checked={!isExplicit} onChange={() => {
+              setIsExplicit(false)
+              emitDraftChange({ explicit: false })
+            }} /> No</label>
+            <label><input type="radio" name={`${radioNamePrefix}-explicit`} value="yes" checked={isExplicit} onChange={() => {
+              setIsExplicit(true)
+              emitDraftChange({ explicit: true })
+            }} /> Yes</label>
           </div>
         </div>
-      </form>
-    </section>
+        <div className="solo-genres">
+          <label className="solo-label">Genres</label>
+          <div className="genre-selected-chips" aria-live="polite">
+            {selectedGenres.map(genre => (
+              <span key={genre} className="genre-chip">
+                <span>{genre}</span>
+                <button
+                  type="button"
+                  className="genre-chip-remove"
+                  onClick={() => handleGenreRemove(genre)}
+                  aria-label={`Remove ${genre}`}
+                >
+                  x
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="genre-checklist" role="group" aria-label="Genres">
+            {genreOptions.map(genre => (
+              <label key={genre} className="genre-check-item">
+                <input
+                  type="checkbox"
+                  checked={selectedGenres.includes(genre)}
+                  onChange={() => handleGenreToggle(genre)}
+                />
+                <span>{genre}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="solo-length">
+          <label className="solo-label">Length Metric</label>
+          <select className="solo-select" value={lengthMetric} onChange={event => {
+            const nextLengthMetric = event.target.value as 'duration_ms' | 'total_episodes'
+            setLengthMetric(nextLengthMetric)
+            emitDraftChange({ lengthMetric: nextLengthMetric })
+          }}>
+            <option value="duration_ms">Episode Duration (minutes)</option>
+            <option value="total_episodes">Total Episodes</option>
+          </select>
+          <label className="solo-label">Minimum Value</label>
+          <input
+            className="solo-input"
+            type="number"
+            min={defaultMinLength}
+            max={defaultMaxLength}
+            value={minLength}
+            onChange={event => {
+              const nextMin = Math.max(defaultMinLength, Number(event.target.value) || defaultMinLength)
+              const nextValue = Math.min(nextMin, maxLength)
+              setMinLength(nextValue)
+              emitDraftChange({ minLength: nextValue })
+            }}
+          />
+          <label className="solo-label">Maximum Value</label>
+          <input
+            className="solo-input"
+            type="number"
+            min={defaultMinLength}
+            max={defaultMaxLength}
+            value={maxLength}
+            onChange={event => {
+              const nextMax = Math.min(defaultMaxLength, Number(event.target.value) || defaultMaxLength)
+              const nextValue = Math.max(nextMax, minLength)
+              setMaxLength(nextValue)
+              emitDraftChange({ maxLength: nextValue })
+            }}
+          />
+        </div>
+        <div className="solo-year">
+          <label className="solo-label">Year</label>
+          <input className="solo-input" type="number" min={1900} max={2100} placeholder="2024" value={releaseYear} onChange={event => {
+            const nextReleaseYear = event.target.value
+            setReleaseYear(nextReleaseYear)
+            emitDraftChange({ releaseYear: nextReleaseYear })
+          }} />
+        </div>
+        <div className="solo-publisher">
+          <label className="solo-label">Publisher</label>
+          <input className="solo-input" type="text" placeholder="NPR" value={publisher} onChange={event => {
+            const nextPublisher = event.target.value
+            setPublisher(nextPublisher)
+            emitDraftChange({ publisher: nextPublisher })
+          }} />
+        </div>
+      </div>
+      {showSubmit && (
+        <div className="solo-search-row">
+          <button type="submit" className="solo-search-btn">SEARCH</button>
+        </div>
+      )}
+    </>
+  )
+
+  if (!showSubmit) {
+    return <div className="solo-form-card">{formFields}</div>
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="solo-form-card">
+      {formFields}
+    </form>
   )
 }
 

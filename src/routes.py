@@ -24,16 +24,63 @@ USE_LLM = False
 OS_PATH = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(OS_PATH, 'data/svd_shows_improved.pkl'), 'rb') as f:
 #     svd_model = pickle.load(f) 
-with open(os.path.join(OS_PATH, 'data/svd_shows_improved2.pkl'), 'rb') as f:
+with open(os.path.join(OS_PATH, 'data/svd_shows_' \
+'improved2.pkl'), 'rb') as f:
     svd_model = pickle.load(f) 
     
-# shape: (n_podcasts, 100)
-# embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_mixed.npy'))
-# show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids.txt')).read_text().splitlines()
-# df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned.csv'))
-embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_improved2.npy'))
+# NOTE: switch between improved and mixed
+# embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_improved2.npy'))
+embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_mixed2.npy'))
 show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids2.txt')).read_text().splitlines()
-df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts2.csv'))
+
+# Create efficient mapping from show_id to embedding index
+show_id_to_idx = {show_id: idx for idx, show_id in enumerate(show_ids)}
+
+df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned2.csv'))
+
+# Extract feature names and precompute dimension labels
+tfidf_vectorizer = svd_model['tfidf']
+svd_model_obj = svd_model['svd']
+feature_names = tfidf_vectorizer.get_feature_names_out()
+
+def get_dimension_label(dim_idx, top_words_count=3):
+    """
+    Create a meaningful label for an SVD dimension based on its top contributing words.
+    
+    Args:
+        dim_idx: Index of the SVD dimension
+        top_words_count: Number of top words to include in the label
+    
+    Returns:
+        A string label like "music, song, artist" representing the dimension
+    """
+    try:
+        if dim_idx >= len(svd_model_obj.components_):
+            return f"Dim {dim_idx}"
+        
+        # Get the component (row) for this dimension
+        component = svd_model_obj.components_[dim_idx]
+        
+        # Get top words by absolute value contribution
+        top_indices = np.argsort(np.abs(component))[-top_words_count:][::-1]
+        top_words = [str(feature_names[i]) for i in top_indices]
+        
+        return ", ".join(top_words)
+    except Exception as e:
+        print(f"[ERROR] get_dimension_label({dim_idx}): {e}")
+        return f"Dim {dim_idx}"
+
+# Precompute labels for faster lookup
+try:
+    n_components = len(svd_model_obj.components_)
+    dimension_labels = {i: get_dimension_label(i) for i in range(n_components)}
+    print(f"[INFO] Precomputed {len(dimension_labels)} dimension labels")
+    # Print first 5 for verification
+    for i in list(dimension_labels.keys())[:5]:
+        print(f"  Dim {i}: {dimension_labels[i]}")
+except Exception as e:
+    print(f"[ERROR] Failed to precompute dimension labels: {e}")
+    dimension_labels = {}
 
 KNOWN_GENRES = [
     'Comedy',
@@ -159,7 +206,58 @@ def parse_query_negations(raw_query, known_genres=None):
     cleaned_query = re.sub(r'\s+', ' ', cleaned_query).strip()
     return cleaned_query, excluded_genres
 
-# TODO: use cosine similarity and return top 5 matches instead of all matches
+# cos sim
+def get_top_dimensions(embedding, k=6):
+    """
+    Extract the top k most activated dimensions, split into positive and negative.
+    Returns two lists:
+    - positive_dims: Top k positive activations
+    - negative_dims: Top k negative activations (sorted by absolute value)
+    Each item is: {'dimension': int, 'value': float, 'label': str}
+    """
+    embedding = np.asarray(embedding).flatten()
+    
+    # Separate positive and negative
+    positive_mask = embedding > 0
+    negative_mask = embedding < 0
+    
+    positive_vals = embedding[positive_mask]
+    negative_vals = embedding[negative_mask]
+    positive_indices = np.where(positive_mask)[0]
+    negative_indices = np.where(negative_mask)[0]
+    
+    # Get top k for each
+    pos_top_k = min(k, len(positive_vals))
+    neg_top_k = min(k, len(negative_vals))
+    
+    # Sort by value (descending for positive, ascending for negative = most negative first)
+    pos_sorted_idx = positive_indices[np.argsort(positive_vals)[-pos_top_k:][::-1]]
+    neg_sorted_idx = negative_indices[np.argsort(negative_vals)[:neg_top_k]]  # Most negative first
+    
+    positive_dims = [
+        {
+            'dimension': int(idx),
+            'value': float(embedding[idx]),
+            'label': dimension_labels.get(int(idx), f"Dim {idx}")
+        }
+        for idx in pos_sorted_idx
+    ]
+    
+    negative_dims = [
+        {
+            'dimension': int(idx),
+            'value': float(embedding[idx]),
+            'label': dimension_labels.get(int(idx), f"Dim {idx}")
+        }
+        for idx in neg_sorted_idx
+    ]
+    
+    return {
+        'positive': positive_dims,
+        'negative': negative_dims
+    }
+
+
 def json_search(query, explicit=False, genres=None, excluded_genres=None, publisher='', release_year=None, length_metric=None, min_length=None, max_length=None):
     genres = genres or []
     excluded_genres = excluded_genres or []
@@ -209,10 +307,16 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
     # add scores and sort
     results = sorted(
         [{'podcast': p, 'score': id_to_score.get(str(p.id), 0.0)} for p in podcasts], key=lambda x: x['score'], reverse=True
-    )[:20]
+    )[:5]
     
-    return (
-        [{
+    # Build result dicts with latent dimension data
+    result_dicts = []
+    for r in results:
+        podcast_id_str = str(r['podcast'].id)
+        podcast_idx = show_id_to_idx.get(podcast_id_str)
+        podcast_embedding = embeddings[podcast_idx] if podcast_idx is not None else None
+        
+        result_dicts.append({
             'title': r['podcast'].name,
             'description': r['podcast'].descr,
             'categories': r['podcast'].categories,
@@ -225,8 +329,10 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
             'popularity': r['podcast'].popularity_score,
             'episode_count': r['podcast'].episode_count,
             'avg_episode_time': r['podcast'].avg_duration_min,
-        } for r in results]
-    )
+            'top_dimensions': get_top_dimensions(podcast_embedding, k=6) if podcast_embedding is not None else {'positive': [], 'negative': []},
+        })
+    
+    return result_dicts
 
 
 def register_routes(app):

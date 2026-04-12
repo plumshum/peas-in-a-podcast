@@ -47,7 +47,7 @@
 /* Color variants */
 .ring-high   .ring-fill { stroke: #22c55e; }
 .ring-mid    .ring-fill { stroke: #3b82f6; }
-.ring-low    .ring-fill { stroke: #f59e0b; }
+.ring-low    .ring-fill { stroke: #14b8a6; }
 .ring-very-low .ring-fill { stroke: #ef4444; }
 
 /* Number inside the ring */
@@ -64,7 +64,7 @@
   font-size: 2.6rem;
   font-weight: 700;
   line-height: 1;
-  color: #111827;
+  color: #28505c;
   letter-spacing: -0.02em;
 }
 
@@ -80,7 +80,7 @@
   font-family: 'Kanit', sans-serif;
   font-size: 1.15rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #28505c;
 }
 
 .match-sub {
@@ -88,6 +88,15 @@
   font-family: 'Open Sans', sans-serif;
   font-size: 0.85rem;
   color: #6b7280;
+}
+
+.match-combined-query {
+  margin: 0;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 0.9rem;
+  color: #2f6144;
+  text-align: center;
+  max-width: 720px;
 }
 
 /* ── Per-user score chips on cards ───────────────────────────────────────── */
@@ -107,15 +116,15 @@
 }
 
 .user-score-a {
-  background: #fef3c7;
-  color: #92400e;
-  border-color: #fcd34d;
+  background: #d9edf0;
+  color: #205a63;
+  border-color: #8db5bb;
 }
 
 .user-score-b {
-  background: #ede9fe;
-  color: #5b21b6;
-  border-color: #c4b5fd;
+  background: #e8dff0;
+  color: #6d4e8c;
+  border-color: #bfa9d9;
 }
 
 /* ── Per-user score bars in modal ─────────────────────────────────────────── */
@@ -162,11 +171,11 @@
 }
 
 .modal-user-bar-a {
-  background: #f59e0b;
+  background: #14b8a6;
 }
 
 .modal-user-bar-b {
-  background: #8b5cf6;
+  background: #7d5ebc;
 }
 
 .modal-user-val {

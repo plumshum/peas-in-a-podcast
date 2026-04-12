@@ -1,36 +1,52 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-import MainLogo from './assets/main_logo.png'
-import MainLogoInstructions from './assets/instr main.png'
-import ResultInstructions from './assets/instr result.png'
-import Pea1 from './assets/pea1.png'
-import Pea2 from './assets/pea2.png'
 import { Podcast } from './types'
 import Chat from './Chat'
-import QueryComponent, { type SearchRequest } from './QueryComponent'
+import { type SearchRequest } from './QueryComponent'
 import ResultComponent from './ResultComponent'
 import MatchResults from './MatchResults'
+import MainLogo from './assets/main_logo.png'
+import CollaborativeMode from './CollaborativeMode'
+import IndividualMode from './IndividualMode'
+
 type ListeningMode = 'solo' | 'collab'
 type AppView = 'query' | 'results'
+type SearchContext =
+  | { mode: 'solo'; request: SearchRequest }
+  | { mode: 'collab'; user1: SearchRequest; user2: SearchRequest }
+
+const defaultSearchRequest: SearchRequest = {
+  query: '',
+  explicit: false,
+  genres: [],
+  excludedGenres: [],
+  publisher: '',
+  releaseYear: '',
+  lengthMetric: 'total_episodes',
+  minLength: 0,
+  maxLength: 500,
+}
 
 function App(): JSX.Element {
   const [useLlm, setUseLlm] = useState<boolean | null>(null)
   const [listeningMode, setListeningMode] = useState<ListeningMode>('solo')
   const [view, setView] = useState<AppView>('query')
-  const [chatSeedTerm, setChatSeedTerm] = useState<string>('')
-  // const [episodes, setEpisodes] = useState<Episode[]>([])
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
   const [matchPct, setMatchPct] = useState<number>(0)
-  const [collabUser1, setCollabUser1] = useState<SearchRequest | null>(null)
-  const [collabUser2, setCollabUser2] = useState<SearchRequest | null>(null)
-  const [collabStatus, setCollabStatus] = useState<string>('')
+  const [searchContext, setSearchContext] = useState<SearchContext | null>(null)
+  const [chatSeedTerm, setChatSeedTerm] = useState<string>('')
+  const [soloDraft, setSoloDraft] = useState<SearchRequest>(defaultSearchRequest)
+  const [collabDraftUser1, setCollabDraftUser1] = useState<SearchRequest>(defaultSearchRequest)
+  const [collabDraftUser2, setCollabDraftUser2] = useState<SearchRequest>(defaultSearchRequest)
 
   useEffect(() => {
-    // Right now should be False until implemented
     fetch('/api/config').then(r => r.json()).then(data => setUseLlm(data.use_llm))
   }, [])
 
   const handleSearch = async (request: SearchRequest): Promise<void> => {
+    setSoloDraft(request)
+    setSearchContext({ mode: 'solo', request })
+
     if (request.query.trim() === '') {
       setPodcasts([])
       setView('query')
@@ -39,212 +55,198 @@ function App(): JSX.Element {
 
     const params = new URLSearchParams()
     params.set('query', request.query)
-
-    if (request.explicit !== undefined) {
-      params.set('explicit', String(request.explicit))
-    }
-
+    if (request.explicit !== undefined) params.set('explicit', String(request.explicit))
     request.genres?.forEach(genre => params.append('genres', genre))
     request.excludedGenres?.forEach(genre => params.append('excludedGenres', genre))
-
-    if (request.publisher?.trim()) {
-      params.set('publisher', request.publisher.trim())
-    }
-
-    if (request.releaseYear?.trim()) {
-      params.set('releaseYear', request.releaseYear.trim())
-    }
-
-    if (request.lengthMetric) {
-      params.set('lengthMetric', request.lengthMetric)
-    }
-
-    if (request.minLength !== undefined) {
-      params.set('minLength', String(request.minLength))
-    }
-
-    if (request.maxLength !== undefined) {
-      params.set('maxLength', String(request.maxLength))
-    }
+    if (request.publisher?.trim()) params.set('publisher', request.publisher.trim())
+    if (request.releaseYear?.trim()) params.set('releaseYear', request.releaseYear.trim())
+    if (request.lengthMetric) params.set('lengthMetric', request.lengthMetric)
+    if (request.minLength !== undefined) params.set('minLength', String(request.minLength))
+    if (request.maxLength !== undefined) params.set('maxLength', String(request.maxLength))
 
     const response = await fetch(`/api/podcasts?${params.toString()}`)
     const data: Podcast[] = await response.json()
-    console.log('Search results:', data)
     setPodcasts(data)
     setView('results')
   }
 
-  const executeCollabSearch = async (userA: SearchRequest, userB: SearchRequest): Promise<void> => {
-    if (userA.query.trim() === '' || userB.query.trim() === '') {
+  const handleCollaborativeSearch = async (user1: SearchRequest, user2: SearchRequest): Promise<void> => {
+    setCollabDraftUser1(user1)
+    setCollabDraftUser2(user2)
+    setSearchContext({ mode: 'collab', user1, user2 })
+
+    if (!user1.query?.trim() || !user2.query?.trim()) {
       setPodcasts([])
       setView('query')
       return
     }
 
-    setCollabStatus('Finding recommendations for both users...')
     const response = await fetch('/api/match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userA, userB }),
+      body: JSON.stringify({ userA: user1, userB: user2 }),
     })
+
     if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(errorText || `Collaborative search failed with status ${response.status}`)
+      throw new Error(`Collaborative search failed with status ${response.status}`)
     }
+
     const data: { match_pct: number; results: Podcast[] } = await response.json()
-    console.log('Collaborative search results:', data)
-    setPodcasts(data.results)
-    setMatchPct(data.match_pct)
-    setCollabStatus('')
+    setMatchPct(data.match_pct ?? 0)
+    setPodcasts(data.results ?? [])
     setView('results')
-  }
-
-  const handleCollabSearchUser1 = async (payload: SearchRequest): Promise<void> => {
-    setCollabUser1(payload)
-    if (collabUser2) {
-      try {
-        await executeCollabSearch(payload, collabUser2)
-      } catch (error) {
-        console.error(error)
-        setCollabStatus('Collaborative search failed. Check backend logs and try again.')
-      }
-      return
-    }
-    setCollabStatus('User 1 is ready. Waiting for User 2 to submit.')
-  }
-
-  const handleCollabSearchUser2 = async (payload: SearchRequest): Promise<void> => {
-    setCollabUser2(payload)
-    if (collabUser1) {
-      try {
-        await executeCollabSearch(collabUser1, payload)
-      } catch (error) {
-        console.error(error)
-        setCollabStatus('Collaborative search failed. Check backend logs and try again.')
-      }
-      return
-    }
-    setCollabStatus('User 2 is ready. Waiting for User 1 to submit.')
-  }
-
-  /* TODO: Skeleton code for chat search */
-  const handleChatSearch = async (value: string): Promise<void> => {
-    setListeningMode('solo')
-    setChatSeedTerm(value)
-    await handleSearch({ query: value })
   }
 
   const handleBackToQuery = (): void => {
     setView('query')
   }
 
+  const handleChatSearch = async (value: string): Promise<void> => {
+    setListeningMode('solo')
+    setChatSeedTerm(value)
+    await handleSearch({ query: value })
+  }
+
+  const formatLengthMetric = (metric?: SearchRequest['lengthMetric']): string => {
+    if (metric === 'duration_ms') return 'Episode Duration (minutes)'
+    return 'Total Episodes'
+  }
+
+  const formatRequestSummary = (request: SearchRequest): Array<{ label: string; value: string }> => {
+    return [
+      { label: 'Query', value: request.query || 'N/A' },
+      { label: 'Explicit', value: request.explicit ? 'Yes' : 'No' },
+      { label: 'Genres', value: request.genres?.length ? request.genres.join(', ') : 'Any' },
+      { label: 'Publisher', value: request.publisher?.trim() || 'Any' },
+      { label: 'Year', value: request.releaseYear?.trim() || 'Any' },
+      {
+        label: 'Length',
+        value: `${formatLengthMetric(request.lengthMetric)}: ${request.minLength ?? 0} - ${request.maxLength ?? 500}`,
+      },
+    ]
+  }
+
+  const renderSummaryCard = (title: string, request: SearchRequest): JSX.Element => (
+    <div className="search-summary-card">
+      <h4>{title}</h4>
+      <div className="search-summary-grid">
+        {formatRequestSummary(request).map(item => (
+          <div key={`${title}-${item.label}`} className="search-summary-item">
+            <span className="search-summary-label">{item.label}</span>
+            <span className="search-summary-value">{item.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderSearchSummary = (): JSX.Element | null => {
+    if (!searchContext) return null
+
+    if (searchContext.mode === 'solo') {
+      return renderSummaryCard('Your Search', searchContext.request)
+    }
+
+    return (
+      <div className="search-summary-stack">
+        <div className="search-summary-collab-wrap">
+          {renderSummaryCard('User 1 Preferences', searchContext.user1)}
+          {renderSummaryCard('User 2 Preferences', searchContext.user2)}
+        </div>
+      </div>
+    )
+  }
+
   if (useLlm === null) return <></>
 
   return (
-    <div className={`full-body-container ${useLlm ? 'llm-mode' : ''}`}>
-      <div className="top-text">
-        <div className="main-logo">
-          <img src={MainLogo} alt="main logo" />
-        </div>
-        {view == 'query' &&
-        (<div className="instructions">
-          <img src={MainLogoInstructions} alt="instructions" />
-        </div>)
-        }
+    <div className="page-root">
+      <div className={`centered-app-shell ${view === 'query' && listeningMode === 'solo' ? 'solo-fullscreen-shell' : ''}`}>
+        <header className="main-header">
+          <h1 className="main-title">Peas in a Podcast</h1>
+          <div className="main-logo">
+            <img src={MainLogo} alt="Peas in a Podcast logo" className="main-logo-img" />
+          </div>
+          {view === 'query' && <div className="main-subtitle">Today, I'm listening...</div>}
+        </header>
+
         {view === 'query' && (
-          <div className="mode-tabs" role="tablist" aria-label="Listening mode">
+          <div className={`mode-toggle-row ${listeningMode === 'solo' ? 'solo-toggle-row' : 'collab-toggle-row'}`}>
             <button
-              type="button"
-              className={`mode-tab ${listeningMode === 'solo' ? 'active' : ''}`}
+              className={`mode-toggle left${listeningMode === 'solo' ? ' active' : ''}`}
               onClick={() => setListeningMode('solo')}
+              type="button"
             >
-              Just Myself
+              by myself
             </button>
             <button
-              type="button"
-              className={`mode-tab ${listeningMode === 'collab' ? 'active' : ''}`}
+              className={`mode-toggle right${listeningMode === 'collab' ? ' active' : ''}`}
               onClick={() => setListeningMode('collab')}
+              type="button"
             >
-              Collaborative Listening
+              with my bestie
             </button>
           </div>
         )}
 
-        {view === 'query' && listeningMode === 'solo' && (
-          <div className="query-card-shell">
-            <img src={Pea2} alt="" className="query-decor query-decor-left" aria-hidden="true" />
-            <QueryComponent
-              title="Query Component"
-              idPrefix="solo"
-              onSearch={handleSearch}
-              initialQuery={chatSeedTerm}
-            />
-          </div>
-        )}
+        <div className="main-panel">
+          {view === 'query' && (
+            <>
+              {listeningMode === 'solo' ? (
+                <IndividualMode
+                  onSearch={handleSearch}
+                  initialQuery={chatSeedTerm}
+                  draft={soloDraft}
+                  onDraftChange={setSoloDraft}
+                />
+              ) : (
+                <CollaborativeMode
+                  onCollaborativeSearch={handleCollaborativeSearch}
+                  initialUser1={collabDraftUser1}
+                  initialUser2={collabDraftUser2}
+                  onDraftChange={(user1, user2) => {
+                    setCollabDraftUser1(user1)
+                    setCollabDraftUser2(user2)
+                  }}
+                />
+              )}
+            </>
+          )}
 
-        {view === 'query' && listeningMode === 'collab' && (
-          <div className="collab-grid">
-            <div className="query-card-shell">
-              <img src={Pea2} alt="" className="query-decor query-decor-left" aria-hidden="true" />
-              <QueryComponent
-                title="Query Component - User 1"
-                idPrefix="collab-user-1"
-                onSearch={handleCollabSearchUser1}
-              />
+          {view === 'results' && (
+            <div className="results-area">
+              <div className="search-summary-panel">
+                <h3>Search Breakdown</h3>
+                {renderSearchSummary()}
+              </div>
+              <div className="results-toolbar">
+                <button type="button" className="back-button" onClick={handleBackToQuery}>
+                  Back to Search
+                </button>
+              </div>
+              <div id="answer-box">
+                {podcasts.length > 0 ? (
+                  listeningMode === 'collab' ? (
+                    <MatchResults
+                      matchPct={matchPct}
+                      results={podcasts}
+                      combinedQuery={searchContext?.mode === 'collab'
+                        ? [searchContext.user1.query?.trim(), searchContext.user2.query?.trim()].filter(Boolean).join(' + ')
+                        : undefined}
+                    />
+                  ) : (
+                    <ResultComponent podcasts={podcasts} />
+                  )
+                ) : (
+                  <p className="no-results">No podcasts found for this search.</p>
+                )}
+              </div>
             </div>
-            <div className="query-card-shell">
-              <img src={Pea1} alt="" className="query-decor query-decor-right" aria-hidden="true" />
-              <QueryComponent
-                title="Query Component - User 2"
-                idPrefix="collab-user-2"
-                onSearch={handleCollabSearchUser2}
-              />
-            </div>
-            {collabStatus && <p className="collab-status">{collabStatus}</p>}
-          </div>
-        )}
+          )}
+        </div>
+
+        {useLlm && <Chat onSearchTerm={handleChatSearch} />}
       </div>
-
-      {view === 'results' &&  listeningMode == 'solo' &&(
-        <>
-          <img src={ResultInstructions} alt="results instructions" className="results-instructions" />
-          <div className="results-toolbar">
-            <button type="button" className="back-button" onClick={handleBackToQuery}>
-              Back to Search
-            </button>
-          </div>
-
-          <div id="answer-box">
-            {podcasts.length > 0 ? (
-              <ResultComponent podcasts={podcasts} />
-            ) : (
-              <p className="no-results">No podcasts found for this search.</p>
-            )}
-          </div>
-        </>
-      )}
-
-      
-      {view === 'results' && listeningMode === 'collab' && (
-        <>
-          <img src={ResultInstructions} alt="results instructions" className="results-instructions" />
-          <div className="results-toolbar">
-            <button type="button" className="back-button" onClick={handleBackToQuery}>
-              Back to Search
-            </button>
-          </div>
-          <div id="answer-box">
-            {podcasts.length > 0 ? (
-              <MatchResults matchPct={matchPct}
-               results={podcasts} />
-            ) : (
-              <p className="no-results">No podcasts found for this search.</p>
-            )}
-          </div>
-        </>
-      )}
-
-      {useLlm && <Chat onSearchTerm={handleChatSearch} />}
     </div>
   )
 }
