@@ -24,7 +24,8 @@ USE_LLM = False
 OS_PATH = os.path.dirname(os.path.abspath(__file__))
 # with open(os.path.join(OS_PATH, 'data/svd_shows_improved.pkl'), 'rb') as f:
 #     svd_model = pickle.load(f) 
-with open(os.path.join(OS_PATH, 'data/svd_shows_improved2.pkl'), 'rb') as f:
+with open(os.path.join(OS_PATH, 'data/svd_shows_' \
+'improved2.pkl'), 'rb') as f:
     svd_model = pickle.load(f) 
     
 # NOTE: switch between improved and mixed
@@ -157,7 +158,7 @@ def parse_query_negations(raw_query, known_genres=None):
     cleaned_query = re.sub(r'\s+', ' ', cleaned_query).strip()
     return cleaned_query, excluded_genres
 
-# TODO: use cosine similarity and return top 5 matches instead of all matches
+# cos sim
 def json_search(query, explicit=False, genres=None, excluded_genres=None, publisher='', release_year=None, length_metric=None, min_length=None, max_length=None):
     genres = genres or []
     excluded_genres = excluded_genres or []
@@ -207,7 +208,7 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
     # add scores and sort
     results = sorted(
         [{'podcast': p, 'score': id_to_score.get(str(p.id), 0.0)} for p in podcasts], key=lambda x: x['score'], reverse=True
-    )[:20]
+    )[:5]
     
     return (
         [{
