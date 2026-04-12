@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Podcast } from './types'
+import DimensionRadarChart from './DimensionRadarChart'
 import './ResultComponent.css'
 
 interface ResultComponentProps {
@@ -147,6 +148,11 @@ function ResultComponent({ podcasts }: ResultComponentProps): JSX.Element {
               <h3>Why you'd {'<3'} it</h3>
               <p>{buildWhyYouLoveIt(selectedPodcast)}</p>
             </div>
+
+            {selectedPodcast.top_dimensions && 
+              (selectedPodcast.top_dimensions.positive?.length > 0 || selectedPodcast.top_dimensions.negative?.length > 0) && (
+              <DimensionRadarChart dimensions={selectedPodcast.top_dimensions} />
+            )}
 
             <div className="modal-actions">
               <a
