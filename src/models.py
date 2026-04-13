@@ -14,7 +14,7 @@ class Podcast(db.Model):
     descr = db.Column(db.Text, nullable=True, default="No description available.")
     categories = db.Column(db.String(256), nullable=False)
     explicit = db.Column(db.Boolean, nullable=False)
-    avg_duration_min = db.Column(db.Float, nullable=True, default=0) # TODO: implement
+    avg_duration_min = db.Column(db.Float, nullable=True)
     episode_count = db.Column(db.Integer, nullable=True, default=0)
     language = db.Column(db.String(16), nullable=True, default="Unknown")
     image_url = db.Column(db.String(256), nullable=True, default="No image URL")

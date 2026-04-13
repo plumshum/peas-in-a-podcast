@@ -22,16 +22,12 @@ USE_LLM = False
 
 # Open at server startup
 OS_PATH = os.path.dirname(os.path.abspath(__file__))
-# with open(os.path.join(OS_PATH, 'data/svd_shows_improved.pkl'), 'rb') as f:
-#     svd_model = pickle.load(f) 
-with open(os.path.join(OS_PATH, 'data/svd_shows_' \
-'improved2.pkl'), 'rb') as f:
+with open(os.path.join(OS_PATH, 'data/svd/svd_mixed.pkl'), 'rb') as f:
     svd_model = pickle.load(f) 
     
 # NOTE: switch between improved and mixed
-# embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_improved2.npy'))
-embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_mixed2.npy'))
-show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids2.txt')).read_text().splitlines()
+embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/embeddings_mixed.npy'))
+show_ids = Path(os.path.join(OS_PATH, 'data/ids/podcasts_embeddings_ids.txt')).read_text().splitlines()
 
 # Create efficient mapping from show_id to embedding index
 show_id_to_idx = {show_id: idx for idx, show_id in enumerate(show_ids)}
@@ -328,7 +324,11 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
             'score': round(float(r['score']), 4),
             'popularity': r['podcast'].popularity_score,
             'episode_count': r['podcast'].episode_count,
-            'avg_episode_time': r['podcast'].avg_duration_min,
+            'avg_episode_time': (
+                r['podcast'].avg_duration_min
+                if r['podcast'].avg_duration_min is not None
+                else 'No information provided'
+            ),
             'top_dimensions': get_top_dimensions(podcast_embedding, k=6) if podcast_embedding is not None else {'positive': [], 'negative': []},
         })
     

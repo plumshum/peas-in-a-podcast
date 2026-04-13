@@ -84,7 +84,11 @@ function MatchResults({ matchPct, results }: MatchResultsProps): JSX.Element {
 
   const closeModal = (): void => setSelectedPodcast(null)
 
-  const formatAvgEpisodeTime = (minutes?: number): string => {
+  const formatAvgEpisodeTime = (minutes?: number | string): string => {
+    if (typeof minutes === 'string') {
+      return minutes
+    }
+
     if (minutes === undefined || minutes === null || Number.isNaN(minutes)) {
       return 'N/A'
     }

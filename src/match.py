@@ -8,13 +8,13 @@ from models import db, Podcast
 
 # Load once at startup
 OS_PATH = os.path.dirname(os.path.abspath(__file__))
-with open(os.path.join(OS_PATH, 'data/svd_shows_improved2.pkl'), 'rb') as f:
+with open(os.path.join(OS_PATH, 'data/svd/svd_mixed.pkl'), 'rb') as f:
     svd_model = pickle.load(f) 
     
 # shape: (n_podcasts, 100)
-embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/description_embeddings_mixed2.npy'))
-show_ids = Path(os.path.join(OS_PATH, 'data/embeddings/embedding_show_ids2.txt')).read_text().splitlines()
-df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned2.csv'))
+embeddings = np.load(os.path.join(OS_PATH, 'data/embeddings/embeddings_mixed.npy'))
+show_ids = Path(os.path.join(OS_PATH, 'data/ids/podcasts_embeddings_ids.txt')).read_text().splitlines()
+df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned2.csv')) #Note: still kept as cleaned2
 show_id_to_idx = {show_id: idx for idx, show_id in enumerate(show_ids)}
 
 tfidf_vectorizer = svd_model['tfidf']
@@ -138,7 +138,7 @@ def compute_match(user_a: dict, user_b: dict) -> dict:
         q = q.filter(Podcast.episode_count <= max_length)
 
     if max_length and length_metric == 'duration_ms':
-        q = q.filter(Podcast.avg_duration_min <= max_length / 60000)
+        q = q.filter(Podcast.avg_duration_min <= max_length)
 
     podcasts = q.all()
 
@@ -163,7 +163,11 @@ def compute_match(user_a: dict, user_b: dict) -> dict:
         'score_for_a':   round(float(cosine_similarity([vec_a], [embeddings[show_id_to_idx[str(p.id)]]])[0][0]), 4) if str(p.id) in show_id_to_idx else 0,
         'score_for_b':   round(float(cosine_similarity([vec_b], [embeddings[show_id_to_idx[str(p.id)]]])[0][0]), 4) if str(p.id) in show_id_to_idx else 0,
         'episode_count': p.episode_count,
-        'avg_episode_time': p.avg_duration_min,
+        'avg_episode_time': (
+            p.avg_duration_min
+            if p.avg_duration_min is not None
+            else 'No information provided'
+        ),
         'top_dimensions': get_top_dimensions(embeddings[show_id_to_idx[str(p.id)]]) if str(p.id) in show_id_to_idx else {'positive': [], 'negative': []},
         'popularity':    p.popularity_score,
     } for p in ranked]

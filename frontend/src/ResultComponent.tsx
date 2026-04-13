@@ -73,7 +73,11 @@ function ResultComponent({ podcasts }: ResultComponentProps): JSX.Element {
     setSelectedPodcast(null)
   }
 
-  const formatAvgEpisodeTime = (minutes?: number): string => {
+  const formatAvgEpisodeTime = (minutes?: number | string): string => {
+    if (typeof minutes === 'string') {
+      return minutes
+    }
+
     if (minutes === undefined || minutes === null || Number.isNaN(minutes)) {
       return 'N/A'
     }

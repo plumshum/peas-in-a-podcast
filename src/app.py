@@ -32,15 +32,12 @@ register_routes(app)
 app.register_blueprint(match_bp)
 
 # Function to initialize database
-# TODO: change from init.json to like podcast.csv, and create Podcast Objects instead
 def init_db():
     with app.app_context():
         # Create all tables
         db.create_all()
 
         # Load podcasts
-        # df_podcasts = pd.read_csv('data/podcasts.csv')
-        # TODO: check with cleaned another time
         df_podcasts = pd.read_csv('data/podcasts_cleaned2.csv')
         for _, row in df_podcasts.iterrows():
             if db.session.get(Podcast, row['id']) is None:  # Check if podcast already exists

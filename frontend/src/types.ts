@@ -34,7 +34,7 @@ export interface Podcast {
   score?: number;
   popularity?: number;
   episode_count?: number;
-  avg_episode_time?: number;
+  avg_episode_time?: number | string;
   top_dimensions?: DimensionGroup;
 }
 
