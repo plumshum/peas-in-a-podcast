@@ -230,9 +230,9 @@ function App(): JSX.Element {
                     <MatchResults
                       matchPct={matchPct}
                       results={podcasts}
-                      combinedQuery={searchContext?.mode === 'collab'
-                        ? [searchContext.user1.query?.trim(), searchContext.user2.query?.trim()].filter(Boolean).join(' + ')
-                        : undefined}
+                      // combinedQuery={searchContext?.mode === 'collab'
+                      //   ? [searchContext.user1.query?.trim(), searchContext.user2.query?.trim()].filter(Boolean).join(' + ')
+                      //   : undefined}
                     />
                   ) : (
                     <ResultComponent podcasts={podcasts} />
