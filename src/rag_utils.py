@@ -1,7 +1,12 @@
+
+# --- Podcast Markdown Context (Singleton) ---
+_podcast_markdown_threads = None
+
 def build_markdown_threads(podcasts_df):
     """
-    Returns a list of markdown strings, one per podcast.
+    Build and cache the list of markdown strings, one per podcast.
     """
+    global _podcast_markdown_threads
     markdown_threads = []
     for idx, row in podcasts_df.iterrows():
         md = f"""## Podcast: {row.get('name', '')}
@@ -11,7 +16,16 @@ def build_markdown_threads(podcasts_df):
 {row.get('descr', '')}
 """
         markdown_threads.append(md)
+    _podcast_markdown_threads = markdown_threads
     return markdown_threads
+
+def get_podcast_markdown_threads(max_context=10):
+    """
+    Return the cached podcast markdown threads (for RAG context).
+    """
+    if _podcast_markdown_threads is None:
+        raise RuntimeError("Podcast markdown threads not built. Call build_markdown_threads(df) at startup.")
+    return _podcast_markdown_threads[:max_context]
 
 def format_rag_context(hits, markdown_threads, max_chars_total=120_000):
     """
@@ -83,52 +97,49 @@ def retrieve_for_rag(query, markdown_threads, json_search_fn, top_k=5, max_chars
     print()
     return hits, format_rag_context(hits, markdown_threads, max_chars_total)
 
-def run_rag_modified_query(user_query, markdown_threads, client, max_chars_total=120_000):
+def enrich_query_with_llm(user_query, client, json_search_fn, max_context=10):
     """
-    Retrieve context, call LLM to modify query, then retrieve and answer.
+    Use LLM to rewrite/enrich the user query for improved retrieval,
+    using the top-N scored podcast descriptions as RAG context.
+    Returns the enriched query string.
     """
-    # Prompt LLM to improve the query for podcast/episode retrieval
+    # Get all markdown threads
+    markdown_threads = get_podcast_markdown_threads(max_context=1000)  # get all
+    # Run search to get top-N scored podcasts
+    hits = search_podcasts_and_episodes(user_query, markdown_threads, json_search_fn, top_k=max_context)
+    # Build context from top-N markdowns
+    context = "\n\n---\n\n".join([markdown_threads[h['doc_id']] for h in hits])
     prompt_query_modification = [
-        {"role": "system", "content": "You are an expert podcast search assistant. Rewrite the user's question to maximize retrieval of relevant podcast and episode descriptions."},
-        {"role": "user", "content": f"Original query: {user_query}"}
+        {"role": "system", "content": (
+            "You are an expert podcast search assistant. "
+            "Given the user's question and the following podcast descriptions, "
+            "rewrite the question to maximize retrieval of relevant podcasts."
+        )},
+        {"role": "user", "content": (
+            f"User question:\n{user_query}\n\n"
+            f"Podcast descriptions:\n{context}"
+        )}
     ]
     response = client.chat(prompt_query_modification, stream=False, show_thinking=False)
     modified_query = response["content"]
-    print(f"Modified query: {modified_query}")
+    return modified_query
 
-    # Retrieve context using the modified query
-    _, ctx = retrieve_for_rag(modified_query, markdown_threads, max_chars_total=max_chars_total)
+def answer_with_rag(user_query, client, json_search_fn):
+    # Step 1: LLM rewrites query
+    enriched_query = enrich_query_with_llm(user_query, client, json_search_fn)
 
-    # Build the LLM prompt
-    rag_system = (
-        "You are a podcast assistant. Answer only from the podcast and episode descriptions below. "
-        "If the answer is not there, say so. Cite podcast or episode titles when you can."
-    )
+    # Step 2: IR retrieves results using enriched query
+    markdown_threads = get_podcast_markdown_threads(max_context=1000)
+    hits, context = retrieve_for_rag(enriched_query, markdown_threads, json_search_fn, top_k=5)
+
+    # Step 3: LLM answers using original query + IR context  ← MISSING
     prompt = [
-        {"role": "system", "content": rag_system},
-        {"role": "user", "content": f"Question:\n{user_query}\n\nDescriptions:\n\n{ctx}"},
+        {"role": "system", "content": "You are a podcast recommendation assistant."},
+        {"role": "user", "content": (
+            f"User question: {user_query}\n\n"
+            f"Relevant podcasts retrieved:\n{context}\n\n"
+            "Based on the above, answer the user's question."
+        )}
     ]
-    stream_output(client.chat(prompt, stream=True, show_thinking=True))
-
-def stream_output(generator):
-  """Stream and format reasoning and content chunks from an LLM generator.
-
-  This prints an initial banner, streams any "reasoning" chunks under a
-  "### Thinking" heading, and then transitions to streaming "content" chunks
-  under an "### Answer" heading once the final answer begins.
-
-  Args:
-    generator: An iterable yielding dictionaries that may contain
-      "reasoning" and/or "content" string values.
-  """
-  print("--- LLM (streaming) ---\n### Thinking\n")
-  seen_answer = False
-  for ch in generator:
-    if ch.get("reasoning"):
-        print(ch["reasoning"], end="", flush=True)
-    if ch.get("content"):
-      if not seen_answer:
-        print("\n\n### Answer\n", end="", flush=True)
-        seen_answer = True
-      print(ch["content"], end="", flush=True)
-  print()
+    answer = client.chat(prompt, stream=False, show_thinking=False)
+    return hits, answer["content"]   # return both so UI can display IR + answer

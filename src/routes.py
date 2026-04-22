@@ -15,6 +15,9 @@ import os
 from flask import send_from_directory, request, jsonify
 from models import db, Episode, Review, Podcast
 
+# --- RAG UTILS IMPORT ---
+import rag_utils
+
 # ── AI toggle ────────────────────────────────────────────────────────────────
 USE_LLM = False
 # USE_LLM = True
@@ -33,6 +36,9 @@ show_ids = Path(os.path.join(OS_PATH, 'data/ids/podcasts_embeddings_ids.txt')).r
 show_id_to_idx = {show_id: idx for idx, show_id in enumerate(show_ids)}
 
 df = pd.read_csv(os.path.join(OS_PATH, 'data/podcasts_cleaned2.csv'))
+
+# --- Initialize RAG markdown threads at startup ---
+rag_utils.build_markdown_threads(df)
 
 # Extract feature names and precompute dimension labels
 tfidf_vectorizer = svd_model['tfidf']
