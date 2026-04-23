@@ -93,6 +93,8 @@ function App(): JSX.Element {
       return
     }
 
+    setIsLoading(true)
+
     const response = await fetch('/api/match', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -108,6 +110,7 @@ function App(): JSX.Element {
     setPodcasts(data.results ?? [])
     setAiOverview(data.ai_overview ?? null)
     setView('results')
+    setIsLoading(false)
   }
 
   const handleBackToQuery = (): void => {
