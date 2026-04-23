@@ -46,6 +46,8 @@ def llm_search_decision(client, user_message):
 def register_chat_route(app, json_search):
     """Register the /api/chat SSE endpoint. Called from routes.py."""
 
+    from rag_utils import enrich_query_with_llm, get_podcast_markdown_threads, retrieve_for_rag
+
     @app.route("/api/chat", methods=["POST"])
     def chat():
         data = request.get_json() or {}
@@ -58,27 +60,27 @@ def register_chat_route(app, json_search):
             return jsonify({"error": "API_KEY not set — add it to your .env file"}), 500
 
         client = LLMClient(api_key=api_key)
-        use_search, search_term = llm_search_decision(client, user_message)
 
-        if use_search:
-            episodes = json_search(search_term or "Kardashian")
-            context_text = "\n\n---\n\n".join(
-                f"Title: {ep['title']}\nDescription: {ep['descr']}\nIMDB Rating: {ep['imdb_rating']}"
-                for ep in episodes
-            ) or "No matching episodes found."
-            messages = [
-                {"role": "system", "content": "Answer questions about Keeping Up with the Kardashians using only the episode information provided."},
-                {"role": "user", "content": f"Episode information:\n\n{context_text}\n\nUser question: {user_message}"},
-            ]
-        else:
-            messages = [
-                {"role": "system", "content": "You are a helpful assistant for Keeping Up with the Kardashians questions."},
-                {"role": "user", "content": user_message},
-            ]
+        # Step 1: LLM rewrites/enriches the query for better podcast retrieval
+        enriched_query = enrich_query_with_llm(user_message, client, json_search, max_context=10)
+
+        # Step 2: Retrieve top podcasts using the enriched query
+        markdown_threads = get_podcast_markdown_threads(max_context=1000)
+        hits, context = retrieve_for_rag(enriched_query, markdown_threads, json_search, top_k=5)
+
+        # Step 3: LLM answers using original query + IR context
+        messages = [
+            {"role": "system", "content": "You are a podcast recommendation assistant."},
+            {"role": "user", "content": (
+                f"User question: {user_message}\n\n"
+                f"Relevant podcasts retrieved:\n{context}\n\n"
+                "Based on the above, answer the user's question."
+            )}
+        ]
 
         def generate():
-            if use_search and search_term:
-                yield f"data: {json.dumps({'search_term': search_term})}\n\n"
+            # Optionally yield the enriched query for UI/debug
+            yield f"data: {json.dumps({'enriched_query': enriched_query})}\n\n"
             try:
                 for chunk in client.chat(messages, stream=True):
                     if chunk.get("content"):
