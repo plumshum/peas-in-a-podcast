@@ -230,7 +230,7 @@ function App(): JSX.Element {
 
           {view === 'results' && (
             <div className="results-area">
-              {useLlm && aiOverview && <AIOverview overview={aiOverview} />}
+              {aiOverview && <AIOverview overview={aiOverview} />}
               <div className="search-summary-panel">
                 <h3>Search Breakdown</h3>
                 {renderSearchSummary()}
