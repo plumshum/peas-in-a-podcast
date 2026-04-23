@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { Podcast } from './types'
-import Chat from './Chat'
+import { AiOverview, MatchApiResponse, Podcast, PodcastsApiResponse } from './types'
 import { type SearchRequest } from './QueryComponent'
 import ResultComponent from './ResultComponent'
 import MatchResults from './MatchResults'
 import MainLogo from './assets/main_logo.png'
 import CollaborativeMode from './CollaborativeMode'
 import IndividualMode from './IndividualMode'
+import AIOverview from './AIOverview'
 
 type ListeningMode = 'solo' | 'collab'
 type AppView = 'query' | 'results'
@@ -32,9 +32,10 @@ function App(): JSX.Element {
   const [listeningMode, setListeningMode] = useState<ListeningMode>('solo')
   const [view, setView] = useState<AppView>('query')
   const [podcasts, setPodcasts] = useState<Podcast[]>([])
+  const [aiOverview, setAiOverview] = useState<AiOverview | null>(null)
   const [matchPct, setMatchPct] = useState<number>(0)
   const [searchContext, setSearchContext] = useState<SearchContext | null>(null)
-  const [chatSeedTerm, setChatSeedTerm] = useState<string>('')
+  const [chatSeedTerm] = useState<string>('')
   const [soloDraft, setSoloDraft] = useState<SearchRequest>(defaultSearchRequest)
   const [collabDraftUser1, setCollabDraftUser1] = useState<SearchRequest>(defaultSearchRequest)
   const [collabDraftUser2, setCollabDraftUser2] = useState<SearchRequest>(defaultSearchRequest)
@@ -49,6 +50,7 @@ function App(): JSX.Element {
 
     if (request.query.trim() === '') {
       setPodcasts([])
+      setAiOverview(null)
       setView('query')
       return
     }
@@ -65,8 +67,14 @@ function App(): JSX.Element {
     if (request.maxLength !== undefined) params.set('maxLength', String(request.maxLength))
 
     const response = await fetch(`/api/podcasts?${params.toString()}`)
-    const data: Podcast[] = await response.json()
-    setPodcasts(data)
+    const payload: Podcast[] | PodcastsApiResponse = await response.json()
+    if (Array.isArray(payload)) {
+      setPodcasts(payload)
+      setAiOverview(null)
+    } else {
+      setPodcasts(payload.results ?? [])
+      setAiOverview(payload.ai_overview ?? null)
+    }
     setView('results')
   }
 
@@ -77,6 +85,7 @@ function App(): JSX.Element {
 
     if (!user1.query?.trim() || !user2.query?.trim()) {
       setPodcasts([])
+      setAiOverview(null)
       setView('query')
       return
     }
@@ -91,9 +100,10 @@ function App(): JSX.Element {
       throw new Error(`Collaborative search failed with status ${response.status}`)
     }
 
-    const data: { match_pct: number; results: Podcast[] } = await response.json()
+    const data: MatchApiResponse = await response.json()
     setMatchPct(data.match_pct ?? 0)
     setPodcasts(data.results ?? [])
+    setAiOverview(data.ai_overview ?? null)
     setView('results')
   }
 
@@ -101,11 +111,11 @@ function App(): JSX.Element {
     setView('query')
   }
 
-  const handleChatSearch = async (value: string): Promise<void> => {
-    setListeningMode('solo')
-    setChatSeedTerm(value)
-    await handleSearch({ query: value })
-  }
+  // const handleChatSearch = async (value: string): Promise<void> => {
+  //   setListeningMode('solo')
+  //   setChatSeedTerm(value)
+  //   await handleSearch({ query: value })
+  // }
 
   const formatLengthMetric = (metric?: SearchRequest['lengthMetric']): string => {
     if (metric === 'duration_ms') return 'Episode Duration (minutes)'
@@ -215,6 +225,7 @@ function App(): JSX.Element {
 
           {view === 'results' && (
             <div className="results-area">
+              {useLlm && aiOverview && <AIOverview overview={aiOverview} />}
               <div className="search-summary-panel">
                 <h3>Search Breakdown</h3>
                 {renderSearchSummary()}
@@ -245,7 +256,7 @@ function App(): JSX.Element {
           )}
         </div>
 
-        {useLlm && <Chat onSearchTerm={handleChatSearch} />}
+        {/* {useLlm && <Chat onSearchTerm={handleChatSearch} />} */}
       </div>
     </div>
   )

@@ -99,6 +99,15 @@ KNOWN_GENRES = [
     'Society',
 ]
 
+LLM_CONTEXT_TOP_K = 5 #LLM only wants 5 results
+LLM_LOW_SCORE_THRESHOLD = 0.16 # If the top-k results all have scores below this, we consider it a "low score" case and do a generic rewrite with no context.
+
+def clip_words(text, max_words=50):
+    words = str(text or '').split()
+    if len(words) <= max_words:
+        return ' '.join(words)
+    return ' '.join(words[:max_words]) + ' ...'
+
 def query_to_vec(query):
     if not query or not query.strip():
         query = "Joe Rogan Podcast"
@@ -261,30 +270,22 @@ def get_top_dimensions(embedding, k=6):
 
 
 
-def json_search(query, explicit=False, genres=None, excluded_genres=None, publisher='', release_year=None, length_metric=None, min_length=None, max_length=None):
+def json_search(
+    query,
+    explicit=False,
+    genres=None,
+    excluded_genres=None,
+    publisher='',
+    release_year=None,
+    length_metric=None,
+    min_length=None,
+    max_length=None,
+    top_k=5,
+    return_metadata=False,
+):
     genres = genres or []
     excluded_genres = excluded_genres or []
 
-    query_vec = query_to_vec(query)
-    # embeddings are size (n_podcasts, 200), so query_vec needs to be (1, 200) for cosine similarity to work
-    
-    # 1. Get the enriched query string (for LLM, not for vector search)
-    enriched_query = rag_utils.enrich_query_with_llm(query, json_search, df, max_context=10, max_chars_total=120_000)
-    print("MODIFIED QUERY::::", enriched_query)
-
-    # 2. Get the vector for the enriched query
-    enriched_query_vec = query_to_vec(enriched_query)
-
-    # 3. Optimize the query vector using Rocchio (if desired)
-    optimized_query_vec = enriched_query_vec
-
-    #optimized_query_vec = query_vec
-    # a=1.0, b=0.25 => .722 
-    # a=0.5, b=0.5
-    
-    scores = cosine_similarity(optimized_query_vec, embeddings)[0]  # shape: (n_podcasts,)
-    id_to_score = dict(zip(show_ids, scores))
-    
     # Get Podcasts and apply filters
     q = db.session.query(Podcast)
     
@@ -315,11 +316,72 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
                 q = q.filter(Podcast.episode_count <= max_length)
         # TODO: popularity?
     podcasts = q.all()
+
+    ai_overview = None
+
+    # embeddings are size (n_podcasts, d), so query_vec must be shape (1, d).
+    if USE_LLM:
+        # Path A: score candidates with the original query for context quality checks.
+        original_query_vec = query_to_vec(query)
+        original_scores = cosine_similarity(original_query_vec, embeddings)[0]
+        original_score_map = dict(zip(show_ids, original_scores))
+
+        baseline_ranked = sorted(
+            [
+                {
+                    'podcast': p,
+                    'score': float(original_score_map.get(str(p.id), 0.0)),
+                }
+                for p in podcasts
+            ],
+            key=lambda x: x['score'],
+            reverse=True,
+        )[:max(1, LLM_CONTEXT_TOP_K)]
+
+        top_context = [
+            {
+                'title': item['podcast'].name,
+                'description': clip_words(item['podcast'].descr, max_words=50),
+                'categories': item['podcast'].categories,
+                'author': item['podcast'].author,
+                'score': item['score'],
+            }
+            for item in baseline_ranked[:LLM_CONTEXT_TOP_K]
+        ]
+
+        all_scores_low = bool(top_context) and all(item['score'] < LLM_LOW_SCORE_THRESHOLD for item in top_context)
+
+        # Path B: rewrite query. If scores are weak, fall back to a generic rewrite with no context.
+        llm_details = rag_utils.enrich_query_with_llm_details(
+            user_query=query,
+            max_context=LLM_CONTEXT_TOP_K,
+            context_items=top_context,
+            generic_only=all_scores_low,
+        )
+        enriched_query = llm_details.get('modified_query', query)
+
+        query_vec = query_to_vec(enriched_query)
+        ai_overview = {
+            'user_query': query,
+            'modified_query': enriched_query,
+            'explanation': llm_details.get('explanation', ''),
+            'used_context': bool(llm_details.get('used_context', False)),
+            'low_score_fallback': all_scores_low,
+            'context_top_k': LLM_CONTEXT_TOP_K,
+            'score_threshold': LLM_LOW_SCORE_THRESHOLD,
+            'top_scores': [round(item['score'], 4) for item in top_context],
+        }
+    else:
+        query_vec = query_to_vec(query)
+
+    optimized_query_vec = query_vec
+    scores = cosine_similarity(optimized_query_vec, embeddings)[0]
+    id_to_score = dict(zip(show_ids, scores))
     
     # add scores and sort
     results = sorted(
         [{'podcast': p, 'score': id_to_score.get(str(p.id), 0.0)} for p in podcasts], key=lambda x: x['score'], reverse=True
-    )[:5]
+    )[:top_k]
     
     # Build result dicts with latent dimension data
     result_dicts = []
@@ -347,7 +409,28 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
             ),
             'top_dimensions': get_top_dimensions(podcast_embedding, k=6) if podcast_embedding is not None else {'positive': [], 'negative': []},
         })
+
+        if USE_LLM:
+            result_dicts[-1]['why_you_love_it'] = rag_utils.summarize_podcast_with_llm(
+                {
+                    'title': r['podcast'].name,
+                    'description': r['podcast'].descr,
+                    'categories': r['podcast'].categories,
+                    'author': r['podcast'].author,
+                },
+                user_query=query,
+                top_dimensions=result_dicts[-1]['top_dimensions'],
+            )
+        else:
+            genres_text = r['podcast'].categories or ''
+            score_text = f" with a similarity score of {r['score']:.3f}" if r['score'] is not None else ''
+            result_dicts[-1]['why_you_love_it'] = f"This show aligns with your interest in {genres_text}{score_text}.".strip()
     
+    if return_metadata:
+        return {
+            'results': result_dicts,
+            'ai_overview': ai_overview,
+        }
     return result_dicts
 
 
@@ -387,7 +470,7 @@ def register_routes(app):
         if not query:
             query = 'podcast'
 
-        return jsonify(json_search(
+        payload = json_search(
             query=query,
             explicit=explicit,
             genres=genres,
@@ -396,8 +479,12 @@ def register_routes(app):
             release_year=year,
             length_metric=length_met,
             min_length=min_length,
-            max_length=max_length
-        ))
+            max_length=max_length,
+            top_k=LLM_CONTEXT_TOP_K,
+            return_metadata=USE_LLM,
+        )
+
+        return jsonify(payload)
 
     if USE_LLM:
         from llm_routes import register_chat_route

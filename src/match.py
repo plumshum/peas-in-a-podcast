@@ -5,6 +5,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 from models import db, Podcast
+import rag_utils
 
 # Load once at startup
 OS_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -142,6 +143,40 @@ def compute_match(user_a: dict, user_b: dict) -> dict:
 
     podcasts = q.all()
 
+    # Build a compact baseline context from the merged vector so the LLM can rewrite efficiently.
+    baseline_candidates = sorted(
+        [
+            {
+                'podcast': p,
+                'score': float(id_to_score.get(str(p.id), 0.0)),
+            }
+            for p in podcasts
+        ],
+        key=lambda x: x['score'],
+        reverse=True,
+    )[:5]
+
+    top_context = [
+        {
+            'title': item['podcast'].name,
+            'description': rag_utils._clip_words(item['podcast'].descr, max_words=50),
+            'categories': item['podcast'].categories,
+            'author': item['podcast'].author,
+            'score': item['score'],
+        }
+        for item in baseline_candidates
+    ]
+
+    all_scores_low = bool(top_context) and all(item['score'] < 0.16 for item in top_context)
+
+    combined_llm = rag_utils.enrich_collab_query_with_llm_details(
+        user_a_query=user_a['query'],
+        user_b_query=user_b['query'],
+        max_context=5,
+        context_items=top_context,
+        generic_only=all_scores_low,
+    )
+
     # Rank by merged score
     ranked = sorted(
         podcasts,
@@ -169,12 +204,33 @@ def compute_match(user_a: dict, user_b: dict) -> dict:
             else 'No information provided'
         ),
         'top_dimensions': get_top_dimensions(embeddings[show_id_to_idx[str(p.id)]]) if str(p.id) in show_id_to_idx else {'positive': [], 'negative': []},
+        'why_you_love_it': rag_utils.summarize_podcast_with_llm(
+            {
+                'title': p.name,
+                'description': p.descr,
+                'categories': p.categories,
+                'author': p.author,
+            },
+            user_query=f"{user_a['query']} {user_b['query']}".strip(),
+            top_dimensions=get_top_dimensions(embeddings[show_id_to_idx[str(p.id)]]) if str(p.id) in show_id_to_idx else {'positive': [], 'negative': []},
+        ),
         'popularity':    p.popularity_score,
     } for p in ranked]
 
     return {
         'match_pct':  match_pct,
         'results':    results,
+        'ai_overview': {
+            'user_query_a': user_a['query'],
+            'user_query_b': user_b['query'],
+            'modified_query': combined_llm.get('modified_query', ''),
+            'explanation': combined_llm.get('explanation', ''),
+            'used_context': bool(combined_llm.get('used_context', False)),
+            'low_score_fallback': all_scores_low,
+            'context_top_k': 5,
+            'score_threshold': 0.16,
+            'top_scores': [round(item['score'], 4) for item in top_context],
+        },
         'meta': {
             'genres_searched': list(genres_union),
             'explicit_allowed': allow_explicit,

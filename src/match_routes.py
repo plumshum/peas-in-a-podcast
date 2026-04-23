@@ -16,5 +16,5 @@ def match():
         return jsonify({'error': 'Both users must provide a query'}), 400
 
     result = compute_match(user_a, user_b)
-    print(f'Match result: {result}')
+    # print(f'Match result: {result}')
     return jsonify(result)
