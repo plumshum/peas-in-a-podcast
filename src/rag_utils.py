@@ -123,23 +123,3 @@ def enrich_query_with_llm(user_query, client, json_search_fn, max_context=10):
     response = client.chat(prompt_query_modification, stream=False, show_thinking=False)
     modified_query = response["content"]
     return modified_query
-
-def answer_with_rag(user_query, client, json_search_fn):
-    # Step 1: LLM rewrites query
-    enriched_query = enrich_query_with_llm(user_query, client, json_search_fn)
-
-    # Step 2: IR retrieves results using enriched query
-    markdown_threads = get_podcast_markdown_threads(max_context=1000)
-    hits, context = retrieve_for_rag(enriched_query, markdown_threads, json_search_fn, top_k=5)
-
-    # Step 3: LLM answers using original query + IR context  ← MISSING
-    prompt = [
-        {"role": "system", "content": "You are a podcast recommendation assistant."},
-        {"role": "user", "content": (
-            f"User question: {user_query}\n\n"
-            f"Relevant podcasts retrieved:\n{context}\n\n"
-            "Based on the above, answer the user's question."
-        )}
-    ]
-    answer = client.chat(prompt, stream=False, show_thinking=False)
-    return hits, answer["content"]   # return both so UI can display IR + answer
