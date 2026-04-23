@@ -6,25 +6,17 @@ body {
   width: 100%;
   min-height: calc(100vh - 180px);
   display: flex;
-  align-items: stretch;
-}
-
-.individual-mode-fullscreen .solo-layout {
-  width: 100%;
-  max-width: none;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 32px;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .individual-mode-fullscreen .solo-form-card {
-  padding: 28px;
-}
-
-.individual-mode-fullscreen .instructions-panel {
   width: 100%;
-  min-width: 0;
-  max-width: none;
+  max-width: 980px;
   padding: 28px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(71, 185, 196, 0.32);
+  backdrop-filter: blur(5px);
 }
 
 .instructions-title {

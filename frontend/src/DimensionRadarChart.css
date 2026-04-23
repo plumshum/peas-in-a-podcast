@@ -4,7 +4,7 @@
   align-items: stretch;
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #e8f6e0;
+  background: rgba(77, 196, 71, 0.13);
   border-radius: 16px;
   border: 1px solid #b3d2bf;
   width: 100%;
@@ -18,7 +18,7 @@
 .radar-title {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  font-family: 'Fredoka One', 'Comic Sans MS', cursive, sans-serif;
+  font-family: 'Comic Sans MS', 'Comic Sans', cursive;
   color: #2f6144;
   width: 100%;
 }
@@ -34,7 +34,7 @@
 .single-radar-container {
   display: flex;
   flex-direction: column;
-  background: #f6fff0;
+  background: rgba(255, 255, 255, 0.72);
   border-radius: 12px;
   padding: 0.9rem;
   border: 1px solid #b3d2bf;

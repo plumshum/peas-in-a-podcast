@@ -65,17 +65,6 @@ function CollaborativeMode({ onCollaborativeSearch, initialUser1, initialUser2, 
 
   return (
     <div className="collab-main-form-box">
-
-      <div className="collab-instructions-panel">
-        <h3 className="instructions-title">Instructions</h3>
-        <div className="instructions-box">
-          <ul>
-            <li>Add both users' preferences below.</li>
-            <li>Once every user has put in their information, click <b>SEARCH TOGETHER</b>.</li>
-          </ul>
-        </div>
-      </div>
-
       <div className="collab-forms-row">
         <div className="collab-user-card user-a-card">
           <QueryComponent
@@ -100,11 +89,14 @@ function CollaborativeMode({ onCollaborativeSearch, initialUser1, initialUser2, 
       <div className="collab-search-row-bottom">
         <label className="collab-ai-toggle">
           <span>Use AI?</span>
-          <input
-            type="checkbox"
-            checked={useLlm}
-            onChange={event => setUseLlm(event.target.checked)}
-          />
+          <span className="ai-switch">
+            <input
+              type="checkbox"
+              checked={useLlm}
+              onChange={event => setUseLlm(event.target.checked)}
+            />
+            <span className="ai-switch-track" aria-hidden="true" />
+          </span>
         </label>
         <button type="button" className="collab-search-btn" onClick={handleSubmit} disabled={submitting || !user1.query.trim() || !user2.query.trim()}>
           {submitting ? 'SEARCHING...' : 'SEARCH TOGETHER'}

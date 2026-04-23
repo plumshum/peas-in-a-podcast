@@ -23,9 +23,9 @@
   flex-direction: column;
   align-items: stretch;
   text-align: left;
-  border: 1px solid #b6d4c8;
+  border: 0;
   border-radius: 16px;
-  background: #f6fff0;
+  background: rgba(255, 255, 255, 0.62);
   padding: 0.65rem;
   min-height: 220px;
   box-shadow: 0 2px 8px rgba(86, 118, 87, 0.15);
@@ -79,8 +79,8 @@
 
 .podcast-score {
   flex-shrink: 0;
-  background: #d9edf0;
-  border: 1px solid #8db5bb;
+  background: rgba(71, 185, 196, 0.18);
+  border: 0;
   color: #205a63;
   border-radius: 999px;
   padding: 0.1rem 0.4rem;
@@ -99,13 +99,13 @@
 }
 
 .tag {
-  background: #d6e8d9;
+  background: rgba(77, 196, 71, 0.16);
   color: #2f6144;
   padding: 0.08rem 0.35rem;
   border-radius: 16px;
   font-size: 0.66rem;
   font-weight: 600;
-  border: 1px solid #9ac4aa;
+  border: 0;
 }
 
 /* Modal */
@@ -126,10 +126,10 @@
   width: min(920px, 100%);
   max-height: min(86vh, 760px);
   overflow-y: auto;
-  background: #f6fff0;
+  background: hsla(0, 0%, 100%, 1);
   border-radius: 20px;
   padding: 1.3rem;
-  border: 1px solid #b6d4c8;
+  border: 0;
   box-shadow: 0 18px 40px rgba(58, 90, 64, 0.22);
 }
 
@@ -174,8 +174,8 @@
 
 .modal-why {
   margin-top: 1rem;
-  background: #d9edf0;
-  border: 1px solid #95c0c5;
+  background: rgba(71, 185, 196, 0.12);
+  border: 0;
   border-radius: 14px;
   padding: 0.8rem;
 }

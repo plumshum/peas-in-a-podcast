@@ -25,6 +25,19 @@ interface QueryComponentProps {
   llmAvailable?: boolean
 }
 
+type HelpTipProps = {
+  text: string
+}
+
+function HelpTip({ text }: HelpTipProps): JSX.Element {
+  return (
+    <span className="field-help" tabIndex={0} aria-label={text}>
+      ?
+      <span className="field-help-tooltip">{text}</span>
+    </span>
+  )
+}
+
 function QueryComponent({
   onSearch,
   initialQuery = '',
@@ -117,7 +130,10 @@ function QueryComponent({
   const formFields = (
     <>
       <div className="solo-query-row">
-        <label className="solo-label required">Query</label>
+        <label className="solo-label required">
+          Query
+          <HelpTip text="Describe what you want, for example: health podcasts with practical advice." />
+        </label>
         <div className="input-box query-input-box">
           <img src={SearchIcon} alt="search" />
           <input
@@ -135,7 +151,10 @@ function QueryComponent({
       </div>
       <div className="solo-fields-grid">
         <div className="solo-explicit">
-          <label className="solo-label required">Explicit?</label>
+          <label className="solo-label required">
+            Explicit?
+            <HelpTip text="Choose Yes to include explicit content, or No to filter it out." />
+          </label>
           <div className="solo-explicit-options">
             <label><input type="radio" name={`${radioNamePrefix}-explicit`} value="no" checked={!isExplicit} onChange={() => {
               setIsExplicit(false)
@@ -148,7 +167,10 @@ function QueryComponent({
           </div>
         </div>
         <div className="solo-genres">
-          <label className="solo-label">Genres</label>
+          <label className="solo-label">
+            Genres
+            <HelpTip text="Pick one or more genres to narrow results. Leave empty for broader matches." />
+          </label>
           <div className="genre-selected-chips" aria-live="polite">
             {selectedGenres.map(genre => (
               <span key={genre} className="genre-chip">
@@ -178,7 +200,10 @@ function QueryComponent({
           </div>
         </div>
         <div className="solo-length">
-          <label className="solo-label">Length Metric</label>
+          <label className="solo-label">
+            Length Metric
+            <HelpTip text="Filter by average episode duration or by total episode count." />
+          </label>
           <select className="solo-select" value={lengthMetric} onChange={event => {
             const nextLengthMetric = event.target.value as 'duration_ms' | 'total_episodes'
             setLengthMetric(nextLengthMetric)
@@ -187,7 +212,10 @@ function QueryComponent({
             <option value="duration_ms">Episode Duration (minutes)</option>
             <option value="total_episodes">Total Episodes</option>
           </select>
-          <label className="solo-label">Minimum Value</label>
+          <label className="solo-label">
+            Minimum Value
+            <HelpTip text="Lowest value to allow for the selected length metric." />
+          </label>
           <input
             className="solo-input"
             type="number"
@@ -201,7 +229,10 @@ function QueryComponent({
               emitDraftChange({ minLength: nextValue })
             }}
           />
-          <label className="solo-label">Maximum Value</label>
+          <label className="solo-label">
+            Maximum Value
+            <HelpTip text="Highest value to allow for the selected length metric." />
+          </label>
           <input
             className="solo-input"
             type="number"
@@ -217,7 +248,10 @@ function QueryComponent({
           />
         </div>
         <div className="solo-year">
-          <label className="solo-label">Year</label>
+          <label className="solo-label">
+            Year
+            <HelpTip text="Optional: limit podcasts by release year, like 2024." />
+          </label>
           <input className="solo-input" type="number" min={1900} max={2100} placeholder="2024" value={releaseYear} onChange={event => {
             const nextReleaseYear = event.target.value
             setReleaseYear(nextReleaseYear)
@@ -225,7 +259,10 @@ function QueryComponent({
           }} />
         </div>
         <div className="solo-publisher">
-          <label className="solo-label">Publisher</label>
+          <label className="solo-label">
+            Publisher
+            <HelpTip text="Optional: filter by publisher or network, for example NPR." />
+          </label>
           <input className="solo-input" type="text" placeholder="NPR" value={publisher} onChange={event => {
             const nextPublisher = event.target.value
             setPublisher(nextPublisher)
@@ -237,15 +274,19 @@ function QueryComponent({
         <div className="solo-search-row">
           <label className="solo-ai-toggle">
             <span>Use AI?</span>
-            <input
-              type="checkbox"
-              checked={useLlm}
-              onChange={event => {
-                const nextValue = event.target.checked
-                setUseLlm(nextValue)
-                emitDraftChange({ useLlm: nextValue })
-              }}
-            />
+            <HelpTip text="Turn this on to rewrite your query and add AI overview and explanation text." />
+            <span className="ai-switch">
+              <input
+                type="checkbox"
+                checked={useLlm}
+                onChange={event => {
+                  const nextValue = event.target.checked
+                  setUseLlm(nextValue)
+                  emitDraftChange({ useLlm: nextValue })
+                }}
+              />
+              <span className="ai-switch-track" aria-hidden="true" />
+            </span>
           </label>
           <button type="submit" className="solo-search-btn">SEARCH</button>
         </div>
