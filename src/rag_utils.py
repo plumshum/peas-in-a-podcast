@@ -13,7 +13,7 @@ def build_markdown_threads(podcasts_df):
 **Categories:** {row.get('categories', '')}  
 **Author:** {row.get('author', '')}  
 **Description:**  
-{row.get('descr', '')}
+{row.get('description', '')}
 """
         markdown_threads.append(md)
     _podcast_markdown_threads = markdown_threads
@@ -97,29 +97,78 @@ def retrieve_for_rag(query, markdown_threads, json_search_fn, top_k=5, max_chars
     print()
     return hits, format_rag_context(hits, markdown_threads, max_chars_total)
 
-def enrich_query_with_llm(user_query, client, json_search_fn, max_context=10):
+from infosci_spark_client import LLMClient
+import os
+import json
+from flask import request, jsonify, Response, stream_with_context
+
+def stream_output(generator):
+  """Stream and format reasoning and content chunks from an LLM generator.
+
+  This prints an initial banner, streams any "reasoning" chunks under a
+  "### Thinking" heading, and then transitions to streaming "content" chunks
+  under an "### Answer" heading once the final answer begins.
+
+  Args:
+    generator: An iterable yielding dictionaries that may contain
+      "reasoning" and/or "content" string values.
+  """
+  print("--- LLM (streaming) ---\n### Thinking\n")
+  seen_answer = False
+  for ch in generator:
+    if ch.get("reasoning"):
+        print(ch["reasoning"], end="", flush=True)
+    if ch.get("content"):
+      if not seen_answer:
+        print("\n\n### Answer\n", end="", flush=True)
+        seen_answer = True
+      print(ch["content"], end="", flush=True)
+  print()
+
+def enrich_query_with_llm(user_query, json_search_fn, df, max_context=10, max_chars_total=120_000):
     """
     Use LLM to rewrite/enrich the user query for improved retrieval,
     using the top-N scored podcast descriptions as RAG context.
     Returns the enriched query string.
     """
+    api_key = os.getenv("SPARK_API_KEY")
+    if not api_key:
+        print("[DEBUG] SPARK_API_KEY missing!")
+        raise RuntimeError("SPARK_API_KEY not set — add it to your .env file")
+
+    print(f"[DEBUG] user_query: {repr(user_query)} (type: {type(user_query)})")
+    client = LLMClient(api_key=api_key)
+
     # Get all markdown threads
-    markdown_threads = get_podcast_markdown_threads(max_context=1000)  # get all
-    # Run search to get top-N scored podcasts
-    hits = search_podcasts_and_episodes(user_query, markdown_threads, json_search_fn, top_k=max_context)
-    # Build context from top-N markdowns
-    context = "\n\n---\n\n".join([markdown_threads[h['doc_id']] for h in hits])
-    prompt_query_modification = [
-        {"role": "system", "content": (
-            "You are an expert podcast search assistant. "
-            "Given the user's question and the following podcast descriptions, "
-            "rewrite the question to maximize retrieval of relevant podcasts."
-        )},
-        {"role": "user", "content": (
-            f"User question:\n{user_query}\n\n"
-            f"Podcast descriptions:\n{context}"
-        )}
-    ]
-    response = client.chat(prompt_query_modification, stream=False, show_thinking=False)
-    modified_query = response["content"]
-    return modified_query
+    context = get_podcast_markdown_threads(max_context)  # get all
+    print("CONTEXT:::::", context)
+    print(f"[DEBUG] context type: {type(context)}; length: {len(context) if hasattr(context, '__len__') else 'N/A'}")
+    if isinstance(context, list):
+        context_str = '\n---\n'.join(context)
+    else:
+        context_str = str(context)
+
+    prompt_query_modification = (
+        "You are an expert podcast search assistant. "
+        "Given the user's question and the following podcast descriptions, "
+        "rewrite the question to maximize retrieval of relevant podcasts.\n\n"
+        f"User question:\n{user_query}\n\n"
+        f"Podcast descriptions:\n{context_str}"
+    )
+
+    print(f"[DEBUG] prompt_query_modification (first 500 chars): {prompt_query_modification[:500]}")
+
+    
+    try:
+        stream_output(client.chat(prompt_query_modification, stream=True, show_thinking=False))
+        response = client.chat(prompt_query_modification, stream=False, show_thinking=False)
+        print(f"[DEBUG] LLM response: {repr(response)}")
+        if not response or "content" not in response or not isinstance(response["content"], str):
+            raise ValueError("LLM response missing or invalid: " + str(response))
+        modified_query = response["content"]
+        print(f"[DEBUG] modified_query: {repr(modified_query)}")
+        return modified_query
+    except Exception as e:
+        # Log error and return a fallback string
+        print(f"[ERROR] enrich_query_with_llm: {e}")
+        return "podcast"

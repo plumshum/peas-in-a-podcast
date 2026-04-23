@@ -19,7 +19,7 @@ from models import db, Episode, Review, Podcast
 import rag_utils
 
 # ── AI toggle ────────────────────────────────────────────────────────────────
-USE_LLM = False
+USE_LLM = True
 # USE_LLM = True
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -260,6 +260,7 @@ def get_top_dimensions(embedding, k=6):
     }
 
 
+
 def json_search(query, explicit=False, genres=None, excluded_genres=None, publisher='', release_year=None, length_metric=None, min_length=None, max_length=None):
     genres = genres or []
     excluded_genres = excluded_genres or []
@@ -267,7 +268,16 @@ def json_search(query, explicit=False, genres=None, excluded_genres=None, publis
     query_vec = query_to_vec(query)
     # embeddings are size (n_podcasts, 200), so query_vec needs to be (1, 200) for cosine similarity to work
     
-    optimized_query_vec = optimize_query_vec(query_vec, embeddings, *get_top_k(query_vec, embeddings, k=5), alpha=0.5, beta=0.5)
+    # 1. Get the enriched query string (for LLM, not for vector search)
+    enriched_query = rag_utils.enrich_query_with_llm(query, json_search, df, max_context=10, max_chars_total=120_000)
+    print("MODIFIED QUERY::::", enriched_query)
+
+    # 2. Get the vector for the enriched query
+    enriched_query_vec = query_to_vec(enriched_query)
+
+    # 3. Optimize the query vector using Rocchio (if desired)
+    optimized_query_vec = enriched_query_vec
+
     #optimized_query_vec = query_vec
     # a=1.0, b=0.25 => .722 
     # a=0.5, b=0.5

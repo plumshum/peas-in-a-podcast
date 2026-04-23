@@ -61,23 +61,24 @@ def register_chat_route(app, json_search):
 
         client = LLMClient(api_key=api_key)
 
-        # Step 1: LLM rewrites/enriches the query for better podcast retrieval
-        enriched_query = enrich_query_with_llm(user_message, client, json_search, max_context=10)
+        # Import embeddings from routes (or wherever they are loaded)
+        from routes import embeddings
+        # Step 1: LLM rewrites/enriches the query for better podcast retrieval, using embeddings as context
+        enriched_query = enrich_query_with_llm(user_message, json_search, embeddings, max_context=10)
+        messages = enriched_query
 
-        # Step 2: Retrieve top podcasts using the enriched query
-        markdown_threads = get_podcast_markdown_threads(max_context=1000)
-        hits, context = retrieve_for_rag(enriched_query, markdown_threads, json_search, top_k=5)
+        # markdown_threads = get_podcast_markdown_threads(max_context=1000)
+        # hits, context = retrieve_for_rag(enriched_query, markdown_threads, json_search, top_k=5)
 
-        # Step 3: LLM answers using original query + IR context
-        messages = [
-            {"role": "system", "content": "You are a podcast recommendation assistant."},
-            {"role": "user", "content": (
-                f"User question: {user_message}\n\n"
-                f"Relevant podcasts retrieved:\n{context}\n\n"
-                "Based on the above, answer the user's question."
-            )}
-        ]
-
+        # messages = [
+        #     {"role": "system", "content": "You are a podcast recommendation assistant."},
+        #     {"role": "user", "content": (
+        #         f"User question: {user_message}\n\n"
+        #         f"Relevant podcasts retrieved:\n{context}\n\n"
+        #         "Based on the above, answer the user's question."
+        #     )}
+        # ]
+        
         def generate():
             # Optionally yield the enriched query for UI/debug
             yield f"data: {json.dumps({'enriched_query': enriched_query})}\n\n"
