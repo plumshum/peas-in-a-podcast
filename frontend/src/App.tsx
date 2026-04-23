@@ -176,7 +176,6 @@ function App(): JSX.Element {
     <div className="page-root">
       <div className={`centered-app-shell ${view === 'query' && listeningMode === 'solo' ? 'solo-fullscreen-shell' : ''}`}>
         <header className="main-header">
-          <h1 className="main-title">Peas in a Podcast</h1>
           <div className="main-logo">
             <img src={MainLogo} alt="Peas in a Podcast logo" className="main-logo-img" />
           </div>

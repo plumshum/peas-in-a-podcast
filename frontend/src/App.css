@@ -47,7 +47,7 @@ body, .page-root {
   margin-bottom: 0.2em;
 }
 .main-logo-img {
-  height: 48px;
+  height: 300px;
   margin: 0.2em 0 0.2em 0;
   display: inline-block;
   vertical-align: middle;
@@ -180,7 +180,7 @@ body, .page-root {
 }
 
 .main-logo img {
-  height: 200px;
+  height: 300px;
   margin-bottom: 4px;
 }
 
