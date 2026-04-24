@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './LoadingScreen.css'
-import LoadingImg1 from './assets/loading_flat.jpeg'
-import LoadingImg2 from './assets/loading_jump.jpeg'
+import LoadingImg1 from './assets/loading_flat.png'
+import LoadingImg2 from './assets/loading_jump.png'
 
 interface LoadingScreenProps {
   isVisible: boolean
