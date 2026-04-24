@@ -14,6 +14,12 @@ export interface DimensionGroup {
   positive: DimensionActivation[];
 }
 
+export interface Episode {
+  title: string;
+  descr: string;
+  imdb_rating: number;
+}
+
 export interface Podcast {
   title: string;
   description: string;

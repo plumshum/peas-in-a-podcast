@@ -200,7 +200,7 @@ def enrich_query_with_llm_details(user_query, max_context=10, context_items=None
             "role": "user",
             "content": (
                 f"User question:\n{user_query}\n\n"
-                + (f"Top podcast candidates:\n{context_str}" if used_context else "No reliable candidates found; do a generic rewrite.")
+                + (f"Top podcast candidates:\n{context_str}" if used_context else "No reliable candidates found; do a generic rewrite and ask user if there were any contradictions in the search query.")
             ),
         },
     ]
@@ -227,7 +227,7 @@ def enrich_query_with_llm_details(user_query, max_context=10, context_items=None
             elif stripped.upper().startswith("EXPLANATION:") and not explanation_line:
                 explanation_line = stripped.split(":", 1)[1].strip()
 
-        modified_query = query_line or (raw_content.splitlines()[0].strip() if raw_content else "podcast")
+        modified_query = query_line or (raw_content.splitlines()[0].strip() if raw_content else "empty or conflicted query")
         explanation = explanation_line or "Rewrote query to improve retrieval over available podcast topics."
 
         if DEBUG_RAG:

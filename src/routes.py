@@ -296,6 +296,7 @@ def get_top_dimensions(embedding, k=6):
 
 def json_search(
     query,
+    raw_query,
     explicit=False,
     genres=None,
     excluded_genres=None,
@@ -379,7 +380,7 @@ def json_search(
 
         # Path B: rewrite query. If scores are weak, fall back to a generic rewrite with no context.
         llm_details = rag_utils.enrich_query_with_llm_details(
-            user_query=query,
+            user_query=raw_query, # Note: Feed the raw_query since it does no lose negations
             max_context=LLM_CONTEXT_TOP_K,
             context_items=top_context,
             generic_only=all_scores_low,
@@ -388,7 +389,7 @@ def json_search(
 
         query_vec = query_to_vec(enriched_query)
         ai_overview = {
-            'user_query': query,
+            'user_query': raw_query,
             'modified_query': enriched_query,
             'explanation': llm_details.get('explanation', ''),
             'used_context': bool(llm_details.get('used_context', False)),
@@ -399,6 +400,7 @@ def json_search(
         }
     else:
         query_vec = query_to_vec(query)
+        query_vec = optimize_query_vec(query_vec, embeddings, *get_top_k(query_vec, embeddings, k=LLM_CONTEXT_TOP_K), alpha=1.0, beta=0.25)
 
     optimized_query_vec = query_vec
     scores = cosine_similarity(optimized_query_vec, embeddings)[0]
@@ -476,10 +478,10 @@ def register_routes(app):
     def config():
         return jsonify({"use_llm": USE_LLM})
 
-    @app.route("/api/episodes")
-    def episodes_search():
-        text = request.args.get("title", "")
-        return jsonify(json_search(text))
+    # @app.route("/api/episodes")
+    # def episodes_search():
+    #     text = request.args.get("title", "")
+    #     return jsonify(json_search(text))
     
     @app.route("/api/podcasts")
     def podcasts_search():
@@ -494,17 +496,51 @@ def register_routes(app):
         max_length       = request.args.get('maxLength', type=float)
         use_llm_param    = request.args.get('useLLM')
 
-        query, negated_genres = parse_query_negations(raw_query)
-        excluded_genres = list(dict.fromkeys(excluded_genres + negated_genres))
+        use_llm_override = None if use_llm_param is None else (use_llm_param.lower() == 'true')
+        effective_use_llm = USE_LLM if use_llm_override is None else (USE_LLM and use_llm_override)
+
+        # Negation behavior differs by mode:
+        # - Non-AI mode: treat negations as hard filters (excluded genres).
+        # - AI mode: let the LLM reason about negation semantics, and avoid
+        #   injecting contradictory hard filters (e.g., genres=['Education']
+        #   plus excluded_genres=['Education']).
+        cleaned_query, negated_genres = parse_query_negations(raw_query)
+        if effective_use_llm:
+            query = cleaned_query or raw_query
+        else:
+            query = cleaned_query
+            excluded_genres = list(dict.fromkeys(excluded_genres + negated_genres))
+
+        # In AI mode, report direct contradiction instead of returning confusing
+        # no-match behavior from contradictory constraints.
+        if effective_use_llm:
+            selected_genres_lower = {str(g).strip().lower() for g in genres if str(g).strip()}
+            negated_genres_lower = {str(g).strip().lower() for g in negated_genres if str(g).strip()}
+            contradictory_genres = sorted(selected_genres_lower & negated_genres_lower)
+            if contradictory_genres:
+                conflict_text = ', '.join(g.title() for g in contradictory_genres)
+                contradiction_overview = {
+                    'user_query': raw_query,
+                    'modified_query': cleaned_query or 'podcast',
+                    'explanation': (
+                        f"I found a contradiction in your request: you selected {conflict_text} "
+                        f"but your query also negates {conflict_text}. Please remove either "
+                        f"the negation or the genre filter and try again."
+                    ),
+                    'used_context': False,
+                    'low_score_fallback': False,
+                    'context_top_k': LLM_CONTEXT_TOP_K,
+                    'score_threshold': LLM_LOW_SCORE_THRESHOLD,
+                    'top_scores': [],
+                }
+                return jsonify({'results': [], 'ai_overview': contradiction_overview})
 
         if not query:
             query = 'podcast'
 
-        use_llm_override = None if use_llm_param is None else (use_llm_param.lower() == 'true')
-        effective_use_llm = USE_LLM if use_llm_override is None else (USE_LLM and use_llm_override)
-
         payload = json_search(
             query=query,
+            raw_query=raw_query,
             explicit=explicit,
             genres=genres,
             excluded_genres=excluded_genres,

@@ -258,7 +258,7 @@ function App(): JSX.Element {
                     <ResultComponent podcasts={podcasts} />
                   )
                 ) : (
-                  <p className="no-results">No podcasts found for this search.</p>
+                  <p className="no-results">No podcasts found for this search. Did you make sure there are no contradictions in your search?</p>
                 )}
               </div>
             </div>

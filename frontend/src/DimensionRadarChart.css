@@ -13,8 +13,6 @@
   resize: none;
   overflow: visible;
   box-sizing: border-box;
-  cursor: pointer;
-  transition: background 0.2s ease;
 }
 
 .radar-title {
