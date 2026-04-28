@@ -353,6 +353,128 @@ def enrich_collab_query_with_llm_details(user_a_query, user_b_query, max_context
         }
 
 
+def enrich_results_overview_with_llm_details(user_query, max_context=10, context_items=None, generic_only=False):
+    """
+    Generate an overall LLM-produced overview for a search result set.
+    Returns a dict with:
+      - overview: short paragraph summarizing the result set
+      - highlights: list of up to 3 short highlight strings
+      - raw_content: raw LLM output
+      - used_context: whether structured context was provided
+    """
+    api_key = os.getenv("SPARK_API_KEY") or os.getenv("API_KEY")
+    if not api_key:
+        if DEBUG_RAG:
+            print("[DEBUG] SPARK_API_KEY missing!")
+        raise RuntimeError("SPARK_API_KEY not set — add it to your .env file")
+
+    client = LLMClient(api_key=api_key)
+
+    used_context = False
+    context_str = ""
+    if not generic_only:
+        if context_items:
+            structured = []
+            for idx, item in enumerate(context_items[:max_context], start=1):
+                structured.append(
+                    f"[{idx}] Title: {item.get('title', '')}\n"
+                    f"Score: {float(item.get('score', 0.0)):.4f}\n"
+                    f"Categories: {item.get('categories', '')}\n"
+                    f"Author: {item.get('author', '')}\n"
+                    f"Description: {_clip_words(item.get('description', ''), max_words=50)}"
+                )
+            context_str = "\n---\n".join(structured)
+            used_context = len(structured) > 0
+        else:
+            context = get_podcast_markdown_threads(max_context)
+            if isinstance(context, list):
+                context_str = "\n---\n".join(_clip_words(item, max_words=50) for item in context)
+                used_context = len(context) > 0
+            else:
+                context_str = _clip_words(context, max_words=50)
+                used_context = bool(context_str)
+
+    max_prompt_chars = 5000
+    if len(context_str) > max_prompt_chars:
+        context_str = context_str[:max_prompt_chars] + "\n...[truncated total context]"
+
+    prompt = [
+        {
+            "role": "system",
+            "content": (
+                "You are an expert podcast search summarizer. Given a user query and the top podcast candidates, "
+                "produce a concise overall summary (one short paragraph, max ~50 words) that explains the common themes and why these results are relevant. "
+                "Also return up to three short highlights (phrases) that capture diversity or notable aspects. Return valid JSON only with keys: overview (string), highlights (array of strings)."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"User query:\n{user_query}\n\n"
+                + (f"Top podcast candidates:\n{context_str}" if used_context else "No reliable candidates found; produce a concise generic overview of likely results for this query.")
+            ),
+        },
+    ]
+
+    try:
+        response = client.chat(prompt, stream=False, show_thinking=False)
+        if not response or "content" not in response or not isinstance(response["content"], str):
+            raise ValueError("LLM response missing or invalid: " + str(response))
+
+        raw_content = response["content"].strip()
+        if DEBUG_RAG:
+            print(f"[DEBUG] enrich_results_overview_with_llm_details LLM response: {repr(raw_content)}")
+
+        # Try to parse JSON first (preferred)
+        overview = ""
+        highlights = []
+        try:
+            cleaned_content = raw_content
+            # LLMs may wrap JSON in markdown fences (```json ... ```); strip them first.
+            if cleaned_content.startswith("```"):
+                lines = cleaned_content.splitlines()
+                if lines and lines[0].strip().startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                cleaned_content = "\n".join(lines).strip()
+
+            try:
+                parsed = json.loads(cleaned_content)
+            except Exception:
+                start = cleaned_content.find("{")
+                end = cleaned_content.rfind("}")
+                if start != -1 and end != -1 and end > start:
+                    parsed = json.loads(cleaned_content[start:end + 1])
+                else:
+                    raise
+            if DEBUG_RAG:
+                print(f"[DEBUG] Parsed LLM JSON response: {repr(parsed)}")
+            overview = parsed.get("overview", "") if isinstance(parsed, dict) else ""
+            highlights = parsed.get("highlights", []) if isinstance(parsed, dict) else []
+            if not isinstance(highlights, list):
+                highlights = []
+        except Exception:
+            # Fallback parsing: look for lines
+            for line in raw_content.splitlines():
+                s = line.strip()
+                if s.upper().startswith("OVERVIEW:") and not overview:
+                    overview = s.split(":", 1)[1].strip()
+                elif s.upper().startswith("HIGHLIGHTS:"):
+                    rest = s.split(":", 1)[1].strip()
+                    # split by common delimiters
+                    parts = [p.strip() for p in rest.replace(";", "|").replace("-", "|").split("|")]
+                    highlights = [p for p in parts if p]
+            if not overview:
+                overview = raw_content.splitlines()[0].strip() if raw_content else ""
+
+        return {"overview": overview, "highlights": highlights, "raw_content": raw_content, "used_context": used_context}
+    except Exception as e:
+        if DEBUG_RAG:
+            print(f"[ERROR] enrich_results_overview_with_llm_details: {type(e).__name__}: {e}")
+        return {"overview": "", "highlights": [], "raw_content": "", "used_context": used_context}
+
+
 def summarize_podcast_with_llm(podcast, user_query=None, top_dimensions=None):
     """
     Generate a short, user-facing summary explaining why a podcast matches.

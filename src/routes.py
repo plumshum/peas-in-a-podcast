@@ -402,6 +402,21 @@ def json_search(
             generic_only=all_scores_low,
         )
         enriched_query = llm_details.get('modified_query', query)
+        # Try to generate an overall results overview using the same context
+        overview_text = ''
+        overview_highlights = []
+        try:
+            overview_details = rag_utils.enrich_results_overview_with_llm_details(
+                user_query=raw_query,
+                max_context=LLM_CONTEXT_TOP_K,
+                context_items=top_context,
+                generic_only=all_scores_low,
+            )
+            if isinstance(overview_details, dict):
+                overview_text = overview_details.get('overview', '')
+                overview_highlights = overview_details.get('highlights', []) if isinstance(overview_details.get('highlights', []), list) else []
+        except Exception as e:
+            print(f"[ERROR] enrich_results_overview_with_llm_details failed: {e}")
 
         query_vec = query_to_vec(enriched_query)
         ai_overview = {
@@ -413,6 +428,8 @@ def json_search(
             'context_top_k': LLM_CONTEXT_TOP_K,
             'score_threshold': LLM_LOW_SCORE_THRESHOLD,
             'top_scores': [round(item['score'], 4) for item in top_context],
+            'results_overview': overview_text,
+            'results_highlights': overview_highlights,
         }
     else:
         query_vec = query_to_vec(query)

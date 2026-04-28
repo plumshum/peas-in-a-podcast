@@ -34,6 +34,14 @@ function AIOverview({ overview }: AIOverviewProps): JSX.Element {
           <span className="ai-overview-value">{overview.modified_query || 'N/A'}</span>
         </div>
         <div className="ai-overview-item">
+          <span className="ai-overview-label">Results Overview</span>
+          <span className="ai-overview-value">{(overview as any).results_overview || 'N/A'}</span>
+        </div>
+        <div className="ai-overview-item">
+          <span className="ai-overview-label">Highlights</span>
+          <span className="ai-overview-value">{((overview as any).results_highlights && (overview as any).results_highlights.length > 0) ? (overview as any).results_highlights.join(' • ') : 'N/A'}</span>
+        </div>
+        <div className="ai-overview-item">
           <span className="ai-overview-label">Explanation</span>
           <span className="ai-overview-value">{overview.explanation || 'N/A'}</span>
         </div>
