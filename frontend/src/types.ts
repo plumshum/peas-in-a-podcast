@@ -43,6 +43,8 @@ export interface AiOverview {
   modified_query: string;
   explanation: string;
   used_context: boolean;
+  results_overview?: string;
+  results_highlights?: string[];
   low_score_fallback: boolean;
   context_top_k: number;
   score_threshold: number;
