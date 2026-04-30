@@ -403,7 +403,7 @@ def enrich_results_overview_with_llm_details(user_query, max_context=10, context
             "role": "system",
             "content": (
                 "You are an expert podcast search summarizer. Given a user query and the top podcast candidates, "
-                "produce a concise overall summary (one short paragraph, max ~50 words) that explains the common themes and why these results are relevant. "
+                "produce a concise overall summary (one short paragraph, max ~100 words) that explains the common themes and why these results are relevant. "
                 "Also return up to three short highlights (phrases) that capture diversity or notable aspects. Return valid JSON only with keys: overview (string), highlights (array of strings)."
             ),
         },
